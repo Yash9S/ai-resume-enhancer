@@ -1,0 +1,404 @@
+<% content_for :title, @resume.title %>
+
+<div class="container-fluid">
+  <!-- Header with Back Button -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><%= @resume.title %></h2>
+    <%= link_to "← Back to Resumes", resumes_path, class: "btn btn-outline-secondary" %>
+  </div>
+
+  <!-- Processing Status Card -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <div class="d-flex align-items-center">
+            <% if @resume.processing? || @resume.processing_status == 'processing' %>
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+              <span class="fw-bold text-primary">Processing resume with AI...</span>
+              <small class="text-muted ms-2">(This may take up to 2 minutes)</small>
+            <% elsif @resume.has_ai_data? %>
+              <i class="bi bi-check-circle-fill text-success me-2"></i>
+              <span class="fw-bold text-success">AI Processing Complete</span>
+              <small class="text-muted ms-2">
+                (<%= @resume.ai_provider_used&.humanize || 'AI' %> • 
+                <%= time_ago_in_words(@resume.processing_completed_at || @resume.updated_at) %> ago)
+              </small>
+            <% elsif @resume.processing_status == 'failed' %>
+              <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+              <span class="fw-bold text-danger">Processing Failed</span>
+              <small class="text-muted ms-2"><%= @resume.processing_error %></small>
+            <% else %>
+              <i class="bi bi-clock text-warning me-2"></i>
+              <span class="fw-bold text-warning">Ready for Processing</span>
+            <% end %>
+          </div>
+          <div class="mt-1">
+            <small class="text-muted">
+              File: <%= @resume.file.filename %> • 
+              Size: <%= number_to_human_size(@resume.file_size) %> • 
+              Uploaded: <%= @resume.created_at.strftime("%m/%d/%Y") %>
+            </small>
+          </div>
+        </div>
+        <div class="col-md-4 text-end">
+          <% unless @resume.processing? || @resume.processing_status == 'processing' %>
+            <%= link_to "🔄 Reprocess", reprocess_resume_path(@resume), method: :post,
+                confirm: "Re-extract content from resume?", class: "btn btn-sm btn-primary" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Extracted Content Card (Similar to Job Description Card) -->
+  <% if @resume.has_ai_data? %>
+    <div class="card mb-4">
+      <div class="card-body">
+        <% ai_data = @resume.ai_extracted_data %>
+        
+        <!-- Header with Title and Actions (like job description card) -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h4 class="text-primary mb-2">✨ AI Extracted Content</h4>
+            <div class="text-muted small">
+              <span class="me-3"><%= @resume.ai_provider_used&.humanize || 'AI' %> Provider</span>
+              <span class="me-3">Processed <%= time_ago_in_words(@resume.processing_completed_at || @resume.updated_at) %> ago</span>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="toggleEditMode()">
+              <i class="bi bi-pencil"></i> Edit
+            </button>
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <% if ai_data[:name] || ai_data[:email] || ai_data[:phone] || ai_data[:location] %>
+          <div class="mb-3">
+            <strong class="text-muted">Contact Information</strong>
+            <div class="mt-2">
+              <% if ai_data[:name] %>
+                <div class="mb-1"><strong>Name:</strong> <%= ai_data[:name] %></div>
+              <% end %>
+              <% if ai_data[:email] %>
+                <div class="mb-1"><strong>Email:</strong> 
+                  <a href="mailto:<%= ai_data[:email] %>"><%= ai_data[:email] %></a>
+                </div>
+              <% end %>
+              <% if ai_data[:phone] %>
+                <div class="mb-1"><strong>Phone:</strong> <%= ai_data[:phone] %></div>
+              <% end %>
+              <% if ai_data[:location] %>
+                <div class="mb-1"><strong>Location:</strong> <%= ai_data[:location] %></div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Professional Summary -->
+        <% if ai_data[:summary] && ai_data[:summary] != 'Summary extraction pending' %>
+          <div class="mb-3">
+            <strong class="text-muted">Professional Summary</strong>
+            <div class="mt-2">
+              <%= simple_format(ai_data[:summary]) %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Skills -->
+        <% if ai_data[:skills] && ai_data[:skills].any? %>
+          <div class="mb-3">
+            <strong class="text-muted">Key Skills:</strong>
+            <div class="mt-2">
+              <% ai_data[:skills].each do |skill| %>
+                <span class="badge bg-secondary me-1 mb-1"><%= skill %></span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Experience -->
+        <% if ai_data[:experience] && ai_data[:experience].any? %>
+          <div class="mb-3">
+            <strong class="text-muted">Work Experience:</strong>
+            <div class="mt-2">
+              <% ai_data[:experience].each_with_index do |exp, index| %>
+                <div class="mb-2 p-2 bg-light rounded">
+                  <div class="fw-bold"><%= exp['title'] || exp[:title] %></div>
+                  <div class="text-muted small"><%= exp['company'] || exp[:company] %></div>
+                  <% if exp['duration'] || exp[:duration] %>
+                    <div class="text-muted small"><%= exp['duration'] || exp[:duration] %></div>
+                  <% end %>
+                  <% if exp['description'] || exp[:description] %>
+                    <div class="mt-1 small"><%= exp['description'] || exp[:description] %></div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Education -->
+        <% if ai_data[:education] && ai_data[:education].any? %>
+          <div class="mb-3">
+            <strong class="text-muted">Education:</strong>
+            <div class="mt-2">
+              <% ai_data[:education].each do |edu| %>
+                <div class="mb-2 p-2 bg-light rounded">
+                  <div class="fw-bold"><%= edu['degree'] || edu[:degree] %></div>
+                  <div class="text-muted small"><%= edu['institution'] || edu[:institution] %></div>
+                  <% if edu['year'] || edu[:year] %>
+                    <div class="text-muted small"><%= edu['year'] || edu[:year] %></div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Raw Extracted Text -->
+        <% if @resume.extracted_text.present? %>
+          <div class="mb-3" id="extracted-text-section">
+            <strong class="text-muted">Extracted Text Content:</strong>
+            <div class="mt-2">
+              <div class="bg-light p-3 rounded small" style="max-height: 200px; overflow-y: auto; font-family: monospace;">
+                <%= simple_format(@resume.extracted_text.truncate(1000)) %>
+                <% if @resume.extracted_text.length > 1000 %>
+                  <div class="text-muted mt-2">
+                    <em>... (showing first 1000 characters of <%= @resume.extracted_text.length %> total)</em>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Action Buttons (like job description card) -->
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-primary btn-sm" onclick="toggleEditMode()">Edit</button>
+          <% if @resume.processing_status == 'completed' %>
+            <%= link_to "🔄 Reprocess", reprocess_resume_path(@resume), method: :post,
+                confirm: "Re-extract content from resume?", class: "btn btn-outline-secondary btn-sm" %>
+          <% end %>
+        </div>
+
+        <!-- Edit Mode Form (Initially Hidden) -->
+        <div id="edit-form" style="display: none;" class="mt-4 border-top pt-3">
+          <%= form_with model: @resume, url: update_content_resume_path(@resume), method: :patch, local: true do |form| %>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Edit Extracted Content:</label>
+              <%= form.text_area :extracted_text, class: "form-control", rows: 15, 
+                  style: "font-family: monospace; font-size: 0.9rem;" %>
+            </div>
+            <div class="d-flex gap-2">
+              <%= form.submit "Save Changes", class: "btn btn-success btn-sm" %>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="toggleEditMode()">Cancel</button>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% elsif @resume.processing? || @resume.processing_status == 'processing' %>
+    <div class="card mb-4">
+      <div class="card-body text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5>Processing Your Resume</h5>
+        <p class="text-muted">AI is extracting and organizing your resume content. This usually takes 1-2 minutes.</p>
+        <div class="progress" style="height: 4px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="card mb-4">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-file-earmark-text text-muted" style="font-size: 3rem;"></i>
+        <h5 class="mt-3">Ready for AI Processing</h5>
+        <p class="text-muted mb-4">Click the button below to extract and organize content from your resume</p>
+        <%= form_with url: process_resume_resume_path(@resume), method: :post, local: true, class: "d-inline" do |form| %>
+          <%= form.submit "🤖 Process with AI", class: "btn btn-primary btn-lg" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Original File Viewer -->
+  <% if @resume.file.attached? %>
+    <div class="card">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">📄 Original Resume</h5>
+        <div>
+          <button class="btn btn-sm btn-outline-primary" onclick="viewInBrowser()">
+            <i class="bi bi-eye"></i> View in Browser
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="saveToLocalStorage()">
+            <i class="bi bi-download"></i> Save Locally
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div id="pdf-viewer" class="text-center py-5">
+          <i class="bi bi-file-earmark-pdf text-primary" style="font-size: 3rem;"></i>
+          <div class="mt-3">
+            <p class="mb-2"><strong><%= @resume.file.filename %></strong></p>
+            <p class="text-muted small">Size: <%= number_to_human_size(@resume.file_size) %></p>
+            <button class="btn btn-primary" onclick="loadPdfViewer()">
+              <i class="bi bi-eye"></i> Load Preview
+            </button>
+          </div>
+        </div>
+        
+        <!-- PDF Embed (loaded on demand) -->
+        <div id="pdf-embed" style="display: none;">
+          <embed src="<%= rails_blob_path(@resume.file, disposition: "inline") %>" 
+                 type="application/pdf" 
+                 width="100%" 
+                 height="600px">
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<% content_for :head do %>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    .card {
+      border: 1px solid rgba(0, 0, 0, 0.125);
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .progress {
+      background-color: rgba(0, 123, 255, 0.1);
+    }
+    
+    .progress-bar {
+      background-color: #007bff;
+    }
+    
+    #pdf-viewer {
+      transition: all 0.3s ease;
+    }
+    
+    .badge {
+      font-size: 0.75rem;
+    }
+    
+    .auto-refresh {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+
+    /* Match job description card styling */
+    .text-primary {
+      color: #6f42c1 !important;
+    }
+
+    .bg-light {
+      background-color: #f8f9fa !important;
+    }
+
+    #edit-form {
+      border-top: 1px solid #dee2e6;
+    }
+  </style>
+<% end %>
+
+<script>
+  // Auto refresh if processing
+  <% if @resume.processing? || @resume.processing_status == 'processing' %>
+    setTimeout(() => {
+      window.location.reload();
+    }, 10000); // Refresh every 10 seconds while processing
+  <% end %>
+  
+  // Toggle edit mode
+  function toggleEditMode() {
+    const editForm = document.getElementById('edit-form');
+    const extractedTextSection = document.getElementById('extracted-text-section');
+    
+    if (editForm.style.display === 'none' || editForm.style.display === '') {
+      editForm.style.display = 'block';
+      if (extractedTextSection) {
+        extractedTextSection.style.display = 'none';
+      }
+    } else {
+      editForm.style.display = 'none';
+      if (extractedTextSection) {
+        extractedTextSection.style.display = 'block';
+      }
+    }
+  }
+  
+  // PDF Viewer Functions
+  function loadPdfViewer() {
+    const viewer = document.getElementById('pdf-viewer');
+    const embed = document.getElementById('pdf-embed');
+    
+    viewer.style.display = 'none';
+    embed.style.display = 'block';
+  }
+  
+  function viewInBrowser() {
+    window.open('<%= rails_blob_path(@resume.file, disposition: "inline") %>', '_blank');
+  }
+  
+  function saveToLocalStorage() {
+    const fileUrl = '<%= rails_blob_path(@resume.file) %>';
+    const fileName = '<%= @resume.file.filename %>';
+    
+    // Store file info in localStorage
+    const fileInfo = {
+      name: fileName,
+      url: fileUrl,
+      savedAt: new Date().toISOString(),
+      resumeTitle: '<%= @resume.title %>'
+    };
+    
+    const savedFiles = JSON.parse(localStorage.getItem('savedResumes') || '[]');
+    savedFiles.push(fileInfo);
+    localStorage.setItem('savedResumes', JSON.stringify(savedFiles));
+    
+    // Also trigger download
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success message
+    showNotification('Resume saved to local storage and downloaded!', 'success');
+  }
+  
+  function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    notification.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 5000);
+  }
+  
+  // Check for saved resumes on load
+  document.addEventListener('DOMContentLoaded', function() {
+    const savedFiles = JSON.parse(localStorage.getItem('savedResumes') || '[]');
+    console.log('Saved resumes in local storage:', savedFiles);
+  });
+</script>

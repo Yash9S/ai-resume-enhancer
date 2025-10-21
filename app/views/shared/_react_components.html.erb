@@ -1,0 +1,304 @@
+<script type="text/babel">
+  // Resume List Component
+  const ResumeList = ({ currentUser }) => {
+    const [resumes, setResumes] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+    const [selectedResume, setSelectedResume] = React.useState(null);
+
+    React.useEffect(() => {
+      fetchResumes();
+    }, []);
+
+    const fetchResumes = async () => {
+      try {
+        const response = await fetch('/api/v1/resumes', {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+          }
+        });
+        const data = await response.json();
+        setResumes(data.resumes || []);
+      } catch (error) {
+        console.error('Error fetching resumes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const handleFileUpload = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('resume[file]', file);
+
+      try {
+        const response = await fetch('/api/v1/resumes', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': getCSRFToken()
+          },
+          body: formData
+        });
+
+        if (response.ok) {
+          fetchResumes(); // Refresh the list
+        }
+      } catch (error) {
+        console.error('Error uploading resume:', error);
+      }
+    };
+
+    if (loading) return <LoadingSpinner />;
+
+    return (
+      <div className="resume-list">
+        <div className="page-header">
+          <h1>Resumes</h1>
+          <div className="upload-section">
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleFileUpload}
+              className="file-input"
+              id="resume-upload"
+            />
+            <label htmlFor="resume-upload" className="btn btn--primary">
+              Upload Resume
+            </label>
+          </div>
+        </div>
+
+        <div className="resume-grid">
+          {resumes.map(resume => (
+            <ResumeCard 
+              key={resume.id} 
+              resume={resume} 
+              onSelect={setSelectedResume}
+              onUpdate={fetchResumes}
+            />
+          ))}
+        </div>
+
+        {selectedResume && (
+          <ResumeModal 
+            resume={selectedResume} 
+            onClose={() => setSelectedResume(null)}
+            onUpdate={fetchResumes}
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Resume Card Component
+  const ResumeCard = ({ resume, onSelect, onUpdate }) => {
+    const getStatusClass = (status) => {
+      switch (status.toLowerCase()) {
+        case 'processed': return 'status--success';
+        case 'processing': return 'status--warning';
+        case 'failed': return 'status--error';
+        default: return 'status--pending';
+      }
+    };
+
+    const handleReprocess = async () => {
+      try {
+        await fetch(`/api/v1/resumes/${resume.id}/reprocess`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+          }
+        });
+        onUpdate();
+      } catch (error) {
+        console.error('Error reprocessing resume:', error);
+      }
+    };
+
+    return (
+      <div className="resume-card">
+        <div className="resume-card__header">
+          <h3 className="resume-card__title">{resume.filename}</h3>
+          <span className={`status-badge ${getStatusClass(resume.status)}`}>
+            {resume.status}
+          </span>
+        </div>
+        
+        <div className="resume-card__content">
+          <p className="resume-card__size">
+            Size: {(resume.file_size / 1024).toFixed(1)} KB
+          </p>
+          <p className="resume-card__date">
+            Uploaded: {new Date(resume.created_at).toLocaleDateString()}
+          </p>
+        </div>
+        
+        <div className="resume-card__actions">
+          <button 
+            className="btn btn--secondary btn--small"
+            onClick={() => onSelect(resume)}
+          >
+            View Details
+          </button>
+          
+          {resume.status === 'Failed' && (
+            <button 
+              className="btn btn--warning btn--small"
+              onClick={handleReprocess}
+            >
+              Reprocess
+            </button>
+          )}
+          
+          {resume.file_url && (
+            <a 
+              href={resume.file_url}
+              className="btn btn--primary btn--small"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Download
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Job Description List Component
+  const JobDescriptionList = ({ currentUser }) => {
+    const [jobDescriptions, setJobDescriptions] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+    const [showCreateForm, setShowCreateForm] = React.useState(false);
+
+    React.useEffect(() => {
+      fetchJobDescriptions();
+    }, []);
+
+    const fetchJobDescriptions = async () => {
+      try {
+        const response = await fetch('/api/v1/job_descriptions', {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': getCSRFToken()
+          }
+        });
+        const data = await response.json();
+        setJobDescriptions(data.job_descriptions || []);
+      } catch (error) {
+        console.error('Error fetching job descriptions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (loading) return <LoadingSpinner />;
+
+    return (
+      <div className="job-descriptions">
+        <div className="page-header">
+          <h1>Job Descriptions</h1>
+          <button 
+            className="btn btn--primary"
+            onClick={() => setShowCreateForm(true)}
+          >
+            Add Job Description
+          </button>
+        </div>
+
+        <div className="job-grid">
+          {jobDescriptions.map(job => (
+            <JobDescriptionCard 
+              key={job.id} 
+              job={job} 
+              onUpdate={fetchJobDescriptions}
+            />
+          ))}
+        </div>
+
+        {showCreateForm && (
+          <JobDescriptionForm 
+            onClose={() => setShowCreateForm(false)}
+            onSubmit={fetchJobDescriptions}
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Job Description Card Component
+  const JobDescriptionCard = ({ job, onUpdate }) => {
+    return (
+      <div className="job-card">
+        <div className="job-card__header">
+          <h3 className="job-card__title">{job.title}</h3>
+          <p className="job-card__company">{job.company}</p>
+        </div>
+        
+        <div className="job-card__content">
+          <p className="job-card__description">
+            {job.content.substring(0, 150)}...
+          </p>
+          <p className="job-card__date">
+            Created: {new Date(job.created_at).toLocaleDateString()}
+          </p>
+        </div>
+        
+        <div className="job-card__actions">
+          <button className="btn btn--secondary btn--small">
+            View Details
+          </button>
+          <button className="btn btn--primary btn--small">
+            Match Resumes
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Recent Lists Components
+  const RecentResumesList = ({ resumes }) => (
+    <div className="recent-list">
+      {resumes.length === 0 ? (
+        <p className="empty-state">No resumes uploaded yet</p>
+      ) : (
+        resumes.map(resume => (
+          <div key={resume.id} className="recent-item">
+            <div className="recent-item__info">
+              <h4>{resume.filename}</h4>
+              <span className={`status-badge ${resume.status === 'Processed' ? 'status--success' : 'status--warning'}`}>
+                {resume.status}
+              </span>
+            </div>
+            <span className="recent-item__date">
+              {new Date(resume.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  const RecentJobsList = ({ jobs }) => (
+    <div className="recent-list">
+      {jobs.length === 0 ? (
+        <p className="empty-state">No job descriptions added yet</p>
+      ) : (
+        jobs.map(job => (
+          <div key={job.id} className="recent-item">
+            <div className="recent-item__info">
+              <h4>{job.title}</h4>
+              <p>{job.company}</p>
+            </div>
+            <span className="recent-item__date">
+              {new Date(job.created_at).toLocaleDateString()}
+            </span>
+          </div>
+        ))
+      )}
+    </div>
+  );
+</script>

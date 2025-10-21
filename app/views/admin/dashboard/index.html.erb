@@ -1,0 +1,285 @@
+<div class="admin-dashboard">
+  <div class="header">
+    <h1>🏢 Global Admin Analytics Dashboard</h1>
+    <p class="subdomain-info">Comprehensive Analytics across All Clients • <strong>all.airesumeparser.com</strong></p>
+  </div>
+
+  <!-- Main Analytics Grid -->
+  <div class="stats-grid">
+    <div class="stat-card primary">
+      <h3><%= @stats[:total_tenants] %></h3>
+      <p>Total Subdomains</p>
+      <small>Active Clients</small>
+    </div>
+    <div class="stat-card success">
+      <h3><%= @stats[:total_data][:resumes] %></h3>
+      <p>Total Resumes</p>
+      <small>Across All Clients</small>
+    </div>
+    <div class="stat-card info">
+      <h3><%= @stats[:total_data][:job_descriptions] %></h3>
+      <p>Total Job Descriptions</p>
+      <small>Created by Clients</small>
+    </div>
+    <div class="stat-card warning">
+      <h3><%= @stats[:total_data][:processings] %></h3>
+      <p>Total Processings</p>
+      <small>All Processing Attempts</small>
+    </div>
+  </div>
+
+  <!-- Processing Analytics -->
+  <div class="processing-analytics">
+    <h2>📊 Processing Analytics</h2>
+    <div class="processing-grid">
+      <div class="processing-card success">
+        <h3><%= @stats[:total_data][:successful_processings] %></h3>
+        <p>Successful Processings</p>
+        <div class="processing-percentage">
+          <% success_rate = @stats[:total_data][:processings] > 0 ? (@stats[:total_data][:successful_processings].to_f / @stats[:total_data][:processings] * 100).round(1) : 0 %>
+          <span class="percentage"><%= success_rate %>% Success Rate</span>
+        </div>
+      </div>
+      <div class="processing-card danger">
+        <h3><%= @stats[:total_data][:failed_processings] %></h3>
+        <p>Failed Processings</p>
+        <div class="processing-percentage">
+          <% failure_rate = @stats[:total_data][:processings] > 0 ? (@stats[:total_data][:failed_processings].to_f / @stats[:total_data][:processings] * 100).round(1) : 0 %>
+          <span class="percentage"><%= failure_rate %>% Failure Rate</span>
+        </div>
+      </div>
+      <div class="processing-card warning">
+        <h3><%= @stats[:total_data][:processing_processings] %></h3>
+        <p>Currently Processing</p>
+        <div class="processing-percentage">
+          <span class="percentage">In Progress</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Overview -->
+  <div class="global-overview">
+    <h2>🌐 Global Overview</h2>
+    <div class="overview-grid">
+      <div class="overview-item">
+        <strong>Active Tenants:</strong> 
+        <span class="value"><%= @stats[:active_tenants] %></span>
+      </div>
+      <div class="overview-item">
+        <strong>Total Users:</strong> 
+        <span class="value"><%= @stats[:total_users] %></span>
+      </div>
+      <div class="overview-item">
+        <strong>Avg Resumes per Client:</strong> 
+        <span class="value">
+          <%= @stats[:active_tenants] > 0 ? (@stats[:total_data][:resumes].to_f / @stats[:active_tenants]).round(1) : 0 %>
+        </span>
+      </div>
+      <div class="overview-item">
+        <strong>Avg JDs per Client:</strong> 
+        <span class="value">
+          <%= @stats[:active_tenants] > 0 ? (@stats[:total_data][:job_descriptions].to_f / @stats[:active_tenants]).round(1) : 0 %>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Management Actions (Analytics-focused) -->
+  <div class="admin-actions">
+    <h2>� Management & Analytics</h2>
+    <div class="action-buttons">
+      <%= link_to "📋 Manage Tenants", admin_tenants_path, class: "btn btn-primary" %>
+      <%= link_to "👥 View All Users", admin_users_path, class: "btn btn-secondary" %>
+      <%= link_to "⚙️ System Jobs", "/sidekiq", class: "btn btn-outline" %>
+      <%= link_to "📊 Detailed Reports", "#", class: "btn btn-info disabled", title: "Coming Soon" %>
+    </div>
+  </div>
+
+  <!-- Recent Tenants -->
+  <div class="recent-section">
+    <h2>🏢 Recent Tenants</h2>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Subdomain</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @recent_tenants.each do |tenant| %>
+            <tr>
+              <td><%= tenant.name %></td>
+              <td><code><%= tenant.subdomain %>.airesumeparser.com</code></td>
+              <td>
+                <span class="badge badge-<%= tenant.status == 'active' ? 'success' : 'warning' %>">
+                  <%= tenant.status.capitalize %>
+                </span>
+              </td>
+              <td><%= tenant.created_at.strftime("%b %d, %Y") %></td>
+              <td>
+                <%= link_to "View", admin_tenant_path(tenant), class: "btn btn-sm btn-outline" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Users -->
+  <div class="recent-section">
+    <h2>👥 Recent Users</h2>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Tenant</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @recent_users.each do |user| %>
+            <tr>
+              <td><%= user.email %></td>
+              <td>
+                <span class="badge badge-<%= user.admin? ? 'primary' : 'secondary' %>">
+                  <%= user.role.capitalize %>
+                </span>
+              </td>
+              <td><%= user.tenant&.name || 'No Tenant' %></td>
+              <td><%= user.created_at.strftime("%b %d, %Y") %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+  .admin-dashboard {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .subdomain-info {
+    color: #666;
+    font-style: italic;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+
+  .stat-card.primary { border-left: 4px solid #007bff; }
+  .stat-card.success { border-left: 4px solid #28a745; }
+  .stat-card.info { border-left: 4px solid #17a2b8; }
+  .stat-card.warning { border-left: 4px solid #ffc107; }
+
+  .data-overview, .quick-actions, .recent-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+  }
+
+  .data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    border: 1px solid transparent;
+    display: inline-block;
+  }
+
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: #007bff;
+    border-color: #007bff;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table th, .table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+    text-align: left;
+  }
+
+  .badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .badge-success {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .badge-warning {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .badge-primary {
+    background: #d1ecf1;
+    color: #0c5460;
+  }
+
+  .badge-secondary {
+    background: #e2e3e5;
+    color: #383d41;
+  }
+</style>

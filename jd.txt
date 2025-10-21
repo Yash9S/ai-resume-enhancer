@@ -1,0 +1,16 @@
+Senior Software Developer
+
+Requirements:
+- 5+ years of software development experience
+- Strong programming skills in Ruby, Python, or Java
+- Experience with Docker and Kubernetes
+- Knowledge of SQL databases (PostgreSQL, MySQL)
+- Cloud platform experience (AWS, Azure, or GCP)
+- Understanding of React or Angular frameworks
+- CI/CD pipeline implementation experience
+- Bachelor's degree in Computer Science or related field
+- Agile/Scrum methodology experience
+Position: Software Developer
+Location: Bengaluru, India (Hybrid)
+Experience Required: 2-4 years
+Employment Type: Full-time

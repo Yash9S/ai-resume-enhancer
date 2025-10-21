@@ -1,0 +1,161 @@
+<% content_for :title, @job_description.title %>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0"><%= @job_description.title %></h4>
+        <div class="d-flex gap-2">
+          <%= link_to "Edit", edit_job_description_path(@job_description), class: "btn btn-outline-primary btn-sm" %>
+          <%= link_to "Delete", @job_description, method: :delete, 
+              confirm: "Are you sure?", class: "btn btn-outline-danger btn-sm" %>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-sm-3"><strong>Company:</strong></div>
+          <div class="col-sm-9"><%= @job_description.company %></div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-sm-3"><strong>Location:</strong></div>
+          <div class="col-sm-9"><%= @job_description.location %></div>
+        </div>
+        
+        <div class="row mb-3">
+          <div class="col-sm-3"><strong>Employment Type:</strong></div>
+          <div class="col-sm-9"><%= @job_description.employment_type&.humanize %></div>
+        </div>
+        
+        <% if @job_description.experience_level.present? %>
+          <div class="row mb-3">
+            <div class="col-sm-3"><strong>Experience Level:</strong></div>
+            <div class="col-sm-9"><%= @job_description.experience_level.humanize %> Level</div>
+          </div>
+        <% end %>
+        
+        <% if @job_description.salary_range.present? %>
+          <div class="row mb-3">
+            <div class="col-sm-3"><strong>Salary Range:</strong></div>
+            <div class="col-sm-9"><%= @job_description.salary_range %></div>
+          </div>
+        <% end %>
+        
+        <div class="row mb-3">
+          <div class="col-sm-3"><strong>Created:</strong></div>
+          <div class="col-sm-9"><%= @job_description.created_at.strftime("%B %d, %Y at %I:%M %p") %></div>
+        </div>
+      </div>
+    </div>
+
+    <% if @job_description.description.present? %>
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">Job Description</h5>
+        </div>
+        <div class="card-body">
+          <div class="job-description-content">
+            <%= simple_format(@job_description.description) %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @job_description.required_skills.present? %>
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">Required Skills</h5>
+        </div>
+        <div class="card-body">
+          <% @job_description.required_skills.split(',').each do |skill| %>
+            <span class="badge bg-primary me-2 mb-2"><%= skill.strip %></span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-md-4">
+    <!-- Match Against Resumes -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Match Against Resumes</h5>
+      </div>
+      <div class="card-body">
+        <% if current_user.resumes.any? %>
+          <p class="text-muted">Select a resume to process against this job description:</p>
+          <% current_user.resumes.recent.limit(5).each do |resume| %>
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+              <div>
+                <strong><%= truncate(resume.title, length: 30) %></strong><br>
+                <small class="text-muted">
+                  <span class="badge bg-<%= resume_status_class(resume.status) %>">
+                    <%= resume.status.humanize %>
+                  </span>
+                </small>
+              </div>
+              <div>
+                <%= form_with url: process_resume_resume_path(resume), method: :post, local: true, class: "d-inline" do |form| %>
+                  <%= form.hidden_field :job_description_id, value: @job_description.id %>
+                  <%= form.submit "Process", class: "btn btn-primary btn-sm", 
+                      disabled: resume.processing? %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+          
+          <div class="mt-3">
+            <%= link_to "View All Resumes", resumes_path, class: "btn btn-outline-primary btn-sm" %>
+          </div>
+        <% else %>
+          <p class="text-muted">No resumes uploaded yet.</p>
+          <%= link_to "Upload Resume", new_resume_path, class: "btn btn-primary btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Processing History -->
+    <div class="card mt-3">
+      <div class="card-header">
+        <h5 class="mb-0">Recent Processing</h5>
+      </div>
+      <div class="card-body">
+        <% recent_processings = ResumeProcessing.joins(:job_description).where(job_description: @job_description).recent.limit(5) %>
+        <% if recent_processings.any? %>
+          <% recent_processings.each do |processing| %>
+            <div class="border-bottom pb-2 mb-2">
+              <div class="d-flex justify-content-between">
+                <span class="fw-bold"><%= truncate(processing.resume.title, length: 25) %></span>
+                <span class="badge bg-<%= processing_status_class(processing.status) %>">
+                  <%= processing.status.humanize %>
+                </span>
+              </div>
+              <small class="text-muted">
+                <%= processing.created_at.strftime("%m/%d/%Y") %>
+              </small>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No processing history yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mt-4">
+  <%= link_to "← Back to Job Descriptions", job_descriptions_path, class: "btn btn-outline-secondary" %>
+</div>
+
+<% content_for :head do %>
+  <style>
+    .job-description-content {
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .badge {
+      font-size: 0.875em;
+    }
+  </style>
+<% end %>

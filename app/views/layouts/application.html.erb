@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "AI Resume Parser" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "react_components", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "components", "data-turbo-track": "reload" %>
+    
+    <script>
+      // Toastr configuration
+      toastr.options = {
+        "closeButton": true,
+        "debug": false,
+        "newestOnTop": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      }
+    </script>
+  </head>
+
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="navbar-container">
+        <div class="navbar-left">
+          <div class="navbar-brand">
+            <%= link_to "AI Resume Parser", root_path, style: "color: white; text-decoration: none;" %>
+          </div>
+          
+          <% if user_signed_in? %>
+            <div class="navbar-menu">
+              <% if admin_subdomain? %>
+                <!-- Admin subdomain navigation -->
+                <% if current_user.admin? %>
+                  <%= link_to "Admin Dashboard", admin_dashboard_index_path, class: "navbar-item" %>
+                  <%= link_to "Tenants", admin_tenants_path, class: "navbar-item" %>
+                  <%= link_to "Users", admin_users_path, class: "navbar-item" %>
+                <% else %>
+                  <span class="navbar-item text-muted">Access Denied</span>
+                <% end %>
+              <% else %>
+                <!-- Regular tenant navigation -->
+                <%= link_to "Dashboard", root_path, class: "navbar-item" %>
+                <%= link_to "Resumes", resumes_path, class: "navbar-item" %>
+                <%= link_to "Job Descriptions", job_descriptions_path, class: "navbar-item" %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+        
+        <div class="navbar-right">
+          <% if user_signed_in? %>
+            <span class="navbar-profile">👋 <%= current_user.email %></span>
+            <%= link_to "Sign Out", destroy_user_session_path, method: :delete, class: "navbar-item btn-signout" %>
+          <% else %>
+            <%= link_to "Sign In", new_user_session_path, class: "navbar-item" %>
+            <%= link_to "Sign Up", new_user_registration_path, class: "navbar-item" %>
+          <% end %>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Toastr Flash Messages -->
+    <% if flash.any? %>
+      <script>
+        <% flash.each do |type, message| %>
+          <% toastr_type = type == 'notice' ? 'success' : (type == 'alert' ? 'error' : type) %>
+          toastr.<%= toastr_type %>('<%= j(message) %>');
+        <% end %>
+      </script>
+    <% end %>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+      <%= yield %>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-light mt-5 py-3">
+      <div class="container text-center">
+        <p>&copy; 2025 AI Resume Parser. All rights reserved.</p>
+      </div>
+    </footer>
+  </body>
+</html>

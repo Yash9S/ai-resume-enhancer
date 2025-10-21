@@ -1,0 +1,107 @@
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_resume_parser_development
+      POSTGRES_USER: ai_resume_parser
+      POSTGRES_PASSWORD: password
+      TZ: Asia/Kolkata
+      PGTZ: Asia/Kolkata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ai_resume_parser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for background jobs (optional but recommended)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Rails Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_HOST: database
+      DATABASE_PORT: 5432
+      DATABASE_PASSWORD: password
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+      # AI Service Configuration - Ollama for local development
+      OLLAMA_BASE_URL: http://host.docker.internal:11434   # FREE local AI (recommended for dev)
+      # Optional: Add other services if needed
+      # HUGGINGFACE_API_KEY: hf_your_hugging_face_token    # FREE cloud AI (fallback)
+      # OPENAI_API_KEY: sk-your_openai_key_here            # PAID premium AI
+    volumes:
+      - .:/rails
+      - bundle_data:/usr/local/bundle
+      - rails_cache:/rails/tmp/cache
+      - rails_storage:/rails/storage
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    command: >
+      bash -c "
+        bundle install &&
+        bundle exec rails db:create db:migrate db:seed &&
+        bundle exec rails server -b 0.0.0.0 -p 3000
+      "
+
+  # Background Job Worker (Sidekiq - optional)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      DATABASE_HOST: database
+      DATABASE_PORT: 5432
+      DATABASE_PASSWORD: password
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+      # AI Service Configuration - Ollama for local development
+      OLLAMA_BASE_URL: http://host.docker.internal:11434   # FREE local AI (recommended for dev)
+      # Optional: Add other services if needed
+      # HUGGINGFACE_API_KEY: hf_your_hugging_face_token    # FREE cloud AI (fallback)
+      # OPENAI_API_KEY: sk-your_openai_key_here            # PAID premium AI
+    volumes:
+      - .:/rails
+      - bundle_data:/usr/local/bundle
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: bundle exec sidekiq
+
+volumes:
+  postgres_data:
+  redis_data:
+  bundle_data:
+  rails_cache:
+  rails_storage:

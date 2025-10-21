@@ -1,0 +1,5 @@
+<!-- React Rails Dashboard -->
+<%= react_component 'Dashboard', { 
+  currentUser: current_user&.attributes&.slice('id', 'email', 'name'),
+  stats: @stats
+} %>

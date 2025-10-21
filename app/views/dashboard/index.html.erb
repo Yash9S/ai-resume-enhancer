@@ -1,0 +1,171 @@
+<% content_for :title, "Dashboard - AI Resume Parser" %>
+
+<%= react_component("App", {
+  currentUser: {
+    id: current_user.id,
+    email: current_user.email,
+    role: current_user.role,
+    is_admin: current_user.admin?
+  },
+  currentView: 'dashboard'
+}) %>
+
+<!-- Minimal Dashboard (Fallback if React fails) -->
+<noscript>
+  <div class="container-fluid px-4">
+    
+    <!-- Minimal Welcome Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="bg-primary text-white p-3 rounded-3 shadow-sm">
+          <h2 class="mb-1 fw-bold">AI Resume Parser</h2>
+          <p class="mb-0 opacity-75">Enhance your career with AI-powered resume analysis</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Clean Analytics Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card border-0 bg-primary text-white h-100">
+          <div class="card-body text-center py-4">
+            <div class="display-4 fw-bold"><%= @stats[:total_resumes] %></div>
+            <div class="fs-6 opacity-75">Total Resumes</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3">
+        <div class="card border-0 bg-success text-white h-100">
+          <div class="card-body text-center py-4">
+            <div class="display-4 fw-bold"><%= @stats[:processed_resumes] %></div>
+            <div class="fs-6 opacity-75">AI Processed</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3">
+        <div class="card border-0 bg-info text-white h-100">
+          <div class="card-body text-center py-4">
+            <div class="display-4 fw-bold"><%= @stats[:total_job_descriptions] %></div>
+            <div class="fs-6 opacity-75">Job Descriptions</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-3">
+        <% processing_rate = @stats[:total_resumes] > 0 ? (@stats[:successful_processings].to_f / @stats[:total_resumes] * 100).round(0) : 0 %>
+        <div class="card border-0 bg-warning text-dark h-100">
+          <div class="card-body text-center py-4">
+            <div class="display-4 fw-bold"><%= processing_rate %>%</div>
+            <div class="fs-6 opacity-75">Success Rate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-light border-0">
+            <h5 class="mb-0 fw-bold text-muted">
+              <i class="fas fa-rocket text-primary me-2"></i>Quick Actions
+            </h5>
+          </div>
+          <div class="card-body p-4">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <%= link_to new_resume_path, class: "btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center" do %>
+                  <i class="fas fa-upload me-2"></i>Upload New Resume
+                <% end %>
+              </div>
+              <div class="col-md-4">
+                <%= link_to new_job_description_path, class: "btn btn-outline-secondary btn-lg w-100 d-flex align-items-center justify-content-center" do %>
+                  <i class="fas fa-briefcase me-2"></i>Add Job Description
+                <% end %>
+              </div>
+              <div class="col-md-4">
+                <%= link_to resumes_path, class: "btn btn-outline-info btn-lg w-100 d-flex align-items-center justify-content-center" do %>
+                  <i class="fas fa-list me-2"></i>View All Resumes
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if @stats[:total_resumes] > 0 %>
+    <!-- Processing Stats -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-light border-0">
+            <h5 class="mb-0 fw-bold text-muted">
+              <i class="fas fa-chart-bar text-success me-2"></i>Processing Analytics
+            </h5>
+          </div>
+          <div class="card-body">
+            <% 
+              total = @stats[:total_resumes]
+              completed = @stats[:successful_processings]
+              processing = @resumes.where(processing_status: ['pending', 'queued', 'processing']).count rescue 0
+              failed = total - completed - processing
+            %>
+            
+            <div class="row text-center">
+              <div class="col-md-3">
+                <div class="p-3">
+                  <div class="h4 text-success mb-1"><%= completed %></div>
+                  <div class="text-muted">Completed</div>
+                  <small class="text-success"><%= total > 0 ? (completed.to_f / total * 100).round(1) : 0 %>%</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="p-3">
+                  <div class="h4 text-warning mb-1"><%= processing %></div>
+                  <div class="text-muted">Processing</div>
+                  <small class="text-warning"><%= total > 0 ? (processing.to_f / total * 100).round(1) : 0 %>%</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="p-3">
+                  <div class="h4 text-danger mb-1"><%= failed %></div>
+                  <div class="text-muted">Failed</div>
+                  <small class="text-danger"><%= total > 0 ? (failed.to_f / total * 100).round(1) : 0 %>%</small>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="p-3">
+                  <div class="h4 text-primary mb-1"><%= total %></div>
+                  <div class="text-muted">Total</div>
+                  <small class="text-primary">100%</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress mt-3" style="height: 10px;">
+              <div class="progress-bar bg-success" style="width: <%= total > 0 ? (completed.to_f / total * 100) : 0 %>%"></div>
+              <div class="progress-bar bg-warning" style="width: <%= total > 0 ? (processing.to_f / total * 100) : 0 %>%"></div>
+              <div class="progress-bar bg-danger" style="width: <%= total > 0 ? (failed.to_f / total * 100) : 0 %>%"></div>
+            </div>
+            
+            <div class="row mt-3">
+              <div class="col-12 text-center">
+                <small class="text-muted">
+                  <span class="badge bg-success me-2">●</span>Completed
+                  <span class="badge bg-warning me-2 ms-3">●</span>Processing
+                  <span class="badge bg-danger me-2 ms-3">●</span>Failed
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% end %>
+
+  </div>
+</noscript>

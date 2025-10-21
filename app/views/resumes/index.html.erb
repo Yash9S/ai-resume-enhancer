@@ -1,0 +1,62 @@
+<% content_for :title, "My Resumes" %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>My Resumes</h2>
+  <%= link_to "Upload New Resume", new_resume_path, class: "btn btn-primary" %>
+</div>
+
+<% if @resumes.any? %>
+  <div class="row">
+    <% @resumes.each do |resume| %>
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h5 class="card-title"><%= link_to resume.title, resume, class: "text-decoration-none" %></h5>
+              <span class="badge bg-<%= resume_status_class(resume.status) %>">
+                <%= resume.status.humanize %>
+              </span>
+            </div>
+            
+            <p class="card-text text-muted small">
+              <i class="fas fa-file"></i> <%= resume.file_name %><br>
+              <i class="fas fa-clock"></i> <%= resume.created_at.strftime("%B %d, %Y") %><br>
+              <i class="fas fa-weight-hanging"></i> <%= number_to_human_size(resume.file_size) %>
+            </p>
+            
+            <% if resume.extracted_content.present? %>
+              <p class="card-text">
+                <%= truncate(strip_tags(resume.extracted_content), length: 100) %>
+              </p>
+            <% end %>
+          </div>
+          
+          <div class="card-footer bg-transparent">
+            <div class="btn-group w-100" role="group">
+              <%= link_to "View", resume, class: "btn btn-outline-primary btn-sm" %>
+              <%= link_to "Edit", edit_resume_path(resume), class: "btn btn-outline-secondary btn-sm" %>
+              <%= link_to "Delete", resume, method: :delete, 
+                  confirm: "Are you sure?", class: "btn btn-outline-danger btn-sm" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Pagination -->
+  <% if respond_to?(:paginate) %>
+    <div class="d-flex justify-content-center mt-4">
+      <%= paginate @resumes %>
+    </div>
+  <% end %>
+<% else %>
+  <div class="text-center py-5">
+    <div class="mb-3">
+      <i class="fas fa-file-upload fa-3x text-muted"></i>
+    </div>
+    <h4>No resumes uploaded yet</h4>
+    <p class="text-muted">Upload your first resume to get started with AI-powered enhancement.</p>
+    <%= link_to "Upload Resume", new_resume_path, class: "btn btn-primary" %>
+  </div>
+<% end %>

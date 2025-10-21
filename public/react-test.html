@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>React Rails Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="test-react-component"></div>
+    
+    <script type="text/babel">
+        // Test React component similar to our Rails components
+        const TestComponent = () => {
+            return React.createElement('div', {}, 
+                React.createElement('h1', {}, 'React is working!'),
+                React.createElement('p', {}, 'This confirms React integration is functional.')
+            );
+        };
+        
+        ReactDOM.render(React.createElement(TestComponent), document.getElementById('test-react-component'));
+    </script>
+</body>
+</html>

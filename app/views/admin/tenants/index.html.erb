@@ -1,0 +1,236 @@
+<div class="admin-tenants">
+  <div class="header">
+    <h1>🏢 Tenant Management</h1>
+    <div class="header-actions">
+      <%= link_to "← Admin Dashboard", admin_dashboard_path, class: "btn btn-secondary" %>
+      <%= link_to "+ New Tenant", new_admin_tenant_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-section">
+    <%= form_with url: admin_tenants_path, method: :get, local: true, class: "search-form" do |form| %>
+      <%= form.text_field :search, placeholder: "Search tenants...", value: params[:search], class: "search-input" %>
+      <%= form.submit "Search", class: "btn btn-outline" %>
+    <% end %>
+  </div>
+
+  <!-- Tenants Table -->
+  <div class="tenants-table">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Subdomain</th>
+          <th>Schema</th>
+          <th>Status</th>
+          <th>Users</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @tenants.each do |tenant| %>
+          <tr>
+            <td>
+              <strong><%= tenant.name %></strong>
+              <% if tenant.description.present? %>
+                <br><small class="text-muted"><%= truncate(tenant.description, length: 50) %></small>
+              <% end %>
+            </td>
+            <td>
+              <code><%= tenant.subdomain %>.airesumeparser.com</code>
+              <br>
+              <a href="http://<%= tenant.subdomain %>.airesumeparser.com" target="_blank" class="external-link">
+                🔗 Visit Site
+              </a>
+            </td>
+            <td><code><%= tenant.schema_name %></code></td>
+            <td>
+              <span class="badge badge-<%= tenant.status == 'active' ? 'success' : tenant.status == 'inactive' ? 'warning' : 'secondary' %>">
+                <%= tenant.status.capitalize %>
+              </span>
+              <div class="mt-1">
+                <% if tenant.status == 'active' %>
+                  <%= button_to "⏸️ Pause", pause_admin_tenant_path(tenant), method: :patch, class: "btn btn-sm btn-warning", form_class: "d-inline", data: { confirm: "Are you sure you want to pause this tenant?" } %>
+                <% else %>
+                  <%= button_to "▶️ Activate", activate_admin_tenant_path(tenant), method: :patch, class: "btn btn-sm btn-success", form_class: "d-inline", data: { confirm: "Are you sure you want to activate this tenant?" } %>
+                <% end %>
+              </div>
+            </td>
+            <td>
+              <%= tenant.users.count %> users
+            </td>
+            <td><%= tenant.created_at.strftime("%b %d, %Y") %></td>
+            <td>
+              <div class="action-buttons">
+                <%= link_to "View", admin_tenant_path(tenant), class: "btn btn-sm btn-outline" %>
+                <%= link_to "Edit", edit_admin_tenant_path(tenant), class: "btn btn-sm btn-secondary" %>
+                <%= link_to "Delete", admin_tenant_path(tenant), method: :delete, 
+                    confirm: "Are you sure? This will permanently delete all tenant data!", 
+                    class: "btn btn-sm btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @tenants.empty? %>
+      <div class="empty-state">
+        <h3>No tenants found</h3>
+        <p>Create your first tenant to get started with multi-tenancy.</p>
+        <%= link_to "Create First Tenant", new_admin_tenant_path, class: "btn btn-primary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<style>
+  .admin-tenants {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .search-section {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+  }
+
+  .search-form {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .search-input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+
+  .tenants-table {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow-x: auto;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table th, .table td {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    text-align: left;
+  }
+
+  .table th {
+    background: #f8f9fa;
+    font-weight: 600;
+  }
+
+  .external-link {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+
+  .action-link {
+    color: #6c757d;
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    border: 1px solid transparent;
+    display: inline-block;
+    text-align: center;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: #007bff;
+    border-color: #007bff;
+  }
+
+  .btn-danger {
+    background: #dc3545;
+    color: white;
+  }
+
+  .badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .badge-success {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .badge-warning {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .badge-secondary {
+    background: #e2e3e5;
+    color: #383d41;
+  }
+
+  .text-muted {
+    color: #6c757d;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+  }
+</style>

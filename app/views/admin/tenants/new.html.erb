@@ -1,0 +1,210 @@
+<div class="admin-tenant-form">
+  <div class="header">
+    <h1>🏢 Create New Tenant</h1>
+    <%= link_to "← Back to Tenants", admin_tenants_path, class: "btn btn-secondary" %>
+  </div>
+
+  <div class="form-container">
+    <%= form_with model: [:admin, @tenant], local: true, class: "tenant-form" do |form| %>
+      <% if @tenant.errors.any? %>
+        <div class="alert alert-danger">
+          <h4><%= pluralize(@tenant.errors.count, "error") %> prohibited this tenant from being saved:</h4>
+          <ul>
+            <% @tenant.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="form-group">
+        <%= form.label :name, "Organization Name" %>
+        <%= form.text_field :name, placeholder: "e.g., Acme Corporation", class: "form-control" %>
+        <small class="form-text">The display name for this organization</small>
+      </div>
+
+      <div class="form-group">
+        <%= form.label :subdomain, "Subdomain" %>
+        <div class="input-group">
+          <%= form.text_field :subdomain, placeholder: "acme", class: "form-control" %>
+          <span class="input-group-text">.airesumeparser.com</span>
+        </div>
+        <small class="form-text">Only lowercase letters, numbers, and hyphens allowed</small>
+      </div>
+
+      <div class="form-group">
+        <%= form.label :schema_name, "Database Schema Name" %>
+        <%= form.text_field :schema_name, placeholder: "acme", class: "form-control" %>
+        <small class="form-text">PostgreSQL schema name (will be auto-generated from subdomain if empty)</small>
+      </div>
+
+      <div class="form-group">
+        <%= form.label :status, "Status" %>
+        <%= form.select :status, 
+            options_for_select([
+              ['Active', 'active'],
+              ['Inactive', 'inactive'],
+              ['Pending', 'pending']
+            ], @tenant.status || 'active'), 
+            {}, { class: "form-control" } %>
+      </div>
+
+      <div class="form-group">
+        <%= form.label :description, "Description" %>
+        <%= form.text_area :description, 
+            placeholder: "Brief description of this organization...", 
+            rows: 3, 
+            class: "form-control" %>
+      </div>
+
+      <div class="form-actions">
+        <%= form.submit "Create Tenant", class: "btn btn-primary" %>
+        <%= link_to "Cancel", admin_tenants_path, class: "btn btn-secondary" %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="info-panel">
+    <h3>ℹ️ What happens when you create a tenant?</h3>
+    <ul>
+      <li>A new PostgreSQL schema will be created</li>
+      <li>All database tables will be created in the new schema</li>
+      <li>The tenant will be accessible at <code>subdomain.airesumeparser.com</code></li>
+      <li>Data will be completely isolated from other tenants</li>
+      <li>Users can be assigned to this tenant</li>
+    </ul>
+  </div>
+</div>
+
+<style>
+  .admin-tenant-form {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .form-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+  }
+
+  .tenant-form {
+    max-width: none;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  .input-group {
+    display: flex;
+  }
+
+  .input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .input-group-text {
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-left: none;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+
+  .form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    padding-top: 1rem;
+  }
+
+  .alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+  }
+
+  .alert-danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+  }
+
+  .alert ul {
+    margin: 0.5rem 0 0 0;
+    padding-left: 1.5rem;
+  }
+
+  .info-panel {
+    background: #e7f3ff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+  }
+
+  .info-panel h3 {
+    margin-top: 0;
+    color: #0056b3;
+  }
+
+  .info-panel ul {
+    margin-bottom: 0;
+  }
+
+  .info-panel li {
+    margin-bottom: 0.5rem;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    border: 1px solid transparent;
+    display: inline-block;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+  }
+</style>

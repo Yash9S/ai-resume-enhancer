@@ -1,0 +1,93 @@
+<% content_for :title, "Upload Resume - AI Resume Parser" %>
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h3>Upload New Resume</h3>
+      </div>
+      <div class="card-body">
+        <%= form_with model: @resume, local: true, multipart: true do |form| %>
+          <% if @resume.errors.any? %>
+            <div class="alert alert-danger">
+              <h4><%= pluralize(@resume.errors.count, "error") %> prohibited this resume from being saved:</h4>
+              <ul class="mb-0">
+                <% @resume.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="mb-3">
+            <%= form.label :title, class: "form-label" %>
+            <%= form.text_field :title, class: "form-control", placeholder: "e.g., Software Engineer Resume - John Doe" %>
+          </div>
+
+          <div class="mb-3">
+            <%= form.label :file, "Resume File", class: "form-label" %>
+            <%= form.file_field :file, class: "form-control", accept: ".pdf,.docx", id: "resume_file" %>
+            <div class="form-text">
+              Supported formats: PDF, DOCX. Maximum file size: 10MB<br>
+              <small class="text-muted">Step 1: Click "Choose File" to select your resume, then click "Upload Resume" to submit.</small>
+            </div>
+          </div>
+
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <%= link_to "Cancel", resumes_path, class: "btn btn-outline-secondary me-md-2" %>
+            <%= form.submit "Upload Resume", class: "btn btn-primary", id: "upload_btn" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Information Card -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5><i class="fas fa-info-circle"></i> What happens after upload?</h5>
+      </div>
+      <div class="card-body">
+        <ol>
+          <li><strong>Upload:</strong> Your resume file is securely uploaded to our system</li>
+          <li><strong>Processing:</strong> AI extracts key information like skills, experience, and education</li>
+          <li><strong>Enhancement:</strong> Match against job descriptions for tailored improvements</li>
+          <li><strong>Download:</strong> Get your enhanced resume in multiple formats</li>
+        </ol>
+        
+        <div class="alert alert-info mt-3">
+          <strong>Pro Tip:</strong> For better results, ensure your resume is well-formatted and contains clear sections for experience, skills, and education.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('resume_file');
+  const uploadBtn = document.getElementById('upload_btn');
+  
+  if (fileInput && uploadBtn) {
+    // Initially disable upload button
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Select a file first';
+    
+    fileInput.addEventListener('change', function() {
+      if (this.files.length > 0) {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload Resume';
+        uploadBtn.classList.remove('btn-secondary');
+        uploadBtn.classList.add('btn-primary');
+      } else {
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Select a file first';
+        uploadBtn.classList.remove('btn-primary');
+        uploadBtn.classList.add('btn-secondary');
+      }
+    });
+  }
+});
+</script>
+    </div>
+  </div>
+</div>
