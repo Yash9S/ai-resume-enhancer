@@ -43,11 +43,11 @@ Apartment.configure do |config|
     end
   }
 
-  # For MySQL databases, Apartment will use: database_name + "_" + tenant_name
-  # So ai_resume_parser_development + "_" + "acme" = "ai_resume_parser_development_acme"
-  # But we want ai_resume_parser_acme, so we need to customize this
+  # For MySQL: We want databases named exactly like the tenant schema names
+  # So "acme" tenant should use "acme" database (not ai_resume_parser_acme)
+  # This matches how the databases are currently created
   
-  # Disable prepend_environment to avoid ai_resume_parser_development_acme
+  # Disable prepend_environment to use simple tenant names
   config.prepend_environment = false
 
   # MySQL configuration for database creation

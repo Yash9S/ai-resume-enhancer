@@ -13,8 +13,9 @@ module Apartment
         
         # Special handling for admin subdomain
         if subdomain == 'all'
-          # Switch to public schema for global admin access
-          return 'public'
+          # For MySQL, return nil to use the main database (not a tenant database)
+          # This gives access to the public/global admin area
+          return nil
         end
         
         # For other subdomains, find the corresponding tenant
@@ -36,7 +37,8 @@ module Apartment
           end
         end
         
-        # Default to public schema if no subdomain or tenant not found
+        # Default to main database if no subdomain or tenant not found
+        # In MySQL setup, nil means use the main database
         nil
       end
 
