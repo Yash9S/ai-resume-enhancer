@@ -87,5 +87,5 @@ yarn-debug.log*
 # Ignore Redis dump files
 dump.rdb
 
-# Ignore apartment gem's .git directory to avoid nested git repo issues
-/apartment-2.2.1/.git/
+# Ignore the entire apartment-2.2.1 directory (we don't want to track the patched gem)
+/apartment-2.2.1/
