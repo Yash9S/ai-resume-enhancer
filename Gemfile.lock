@@ -235,6 +235,8 @@ GEM
     msgpack (1.8.0)
     multi_xml (0.7.2)
       bigdecimal (~> 3.1)
+    mysql2 (0.5.7)
+      bigdecimal
     net-imap (0.5.12)
       date
       net-protocol
@@ -266,8 +268,6 @@ GEM
       hashery (~> 2.0)
       ruby-rc4
       ttfunk
-    pg (1.6.2-x64-mingw-ucrt)
-    pg (1.6.2-x86_64-linux)
     pp (0.6.3)
       prettyprint
     prettyprint (0.2.0)
@@ -526,8 +526,8 @@ DEPENDENCIES
   jwt
   kamal
   kaminari
+  mysql2 (~> 0.5)
   pdf-reader
-  pg (~> 1.1)
   propshaft
   puma (>= 5.0)
   rack-cors
