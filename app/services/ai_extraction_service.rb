@@ -1,8 +1,8 @@
 class AiExtractionService
   include HTTParty
   
-  # Use the AI service directly (simple and reliable)
-  base_uri ENV.fetch('AI_SERVICE_URL', 'http://localhost:8001')
+  # Use the Ruby AI service directly (simple and reliable)
+  base_uri ENV.fetch('RUBY_AI_SERVICE_URL', 'http://192.168.65.254:8001')
   
   def initialize
     @options = {

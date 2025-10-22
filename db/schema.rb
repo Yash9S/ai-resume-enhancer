@@ -12,9 +12,16 @@
 
 ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
   create_schema "acme"
+  create_schema "debuglog"
+  create_schema "debugtest"
+  create_schema "fixedtest"
   create_schema "globalsol"
+  create_schema "innovlabs"
   create_schema "techstart"
   create_schema "test"
+  create_schema "test1"
+  create_schema "workingauto"
+  create_schema "workingtest"
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"

@@ -78,6 +78,9 @@ Rails.application.configure do
 
   # Ruby AI Service URL for microservice communication
   config.after_initialize do
-    ENV['RUBY_AI_SERVICE_URL'] ||= 'http://localhost:4001'
+    ENV['RUBY_AI_SERVICE_URL'] ||= 'http://192.168.65.254:8001'
   end
+
+  # Allow requests to localhost services
+  config.hosts << "localhost"
 end

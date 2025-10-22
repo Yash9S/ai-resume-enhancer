@@ -12,8 +12,22 @@ class ResumeProcessingJob < ApplicationJob
     3.minutes
   end
 
-  def perform(resume_id, job_description_id = nil, ai_provider = 'ollama')
+  def perform(resume_id, job_description_id = nil, ai_provider = 'ollama', tenant_name = nil)
     start_time = Time.current
+    
+    # Switch to the correct tenant if provided
+    if tenant_name.present?
+      Apartment::Tenant.switch(tenant_name) do
+        process_resume_in_tenant(resume_id, job_description_id, ai_provider, start_time)
+      end
+    else
+      process_resume_in_tenant(resume_id, job_description_id, ai_provider, start_time)
+    end
+  end
+
+  private
+
+  def process_resume_in_tenant(resume_id, job_description_id, ai_provider, start_time)
     resume = Resume.find(resume_id)
     job_description = job_description_id ? JobDescription.find(job_description_id) : nil
     

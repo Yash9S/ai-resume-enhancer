@@ -42,12 +42,16 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       DATABASE_HOST: database
       DATABASE_PORT: 5432
       DATABASE_PASSWORD: password
       REDIS_URL: redis://redis:6379/0
       RAILS_ENV: development
+      # Ruby AI Service Configuration
+      RUBY_AI_SERVICE_URL: http://192.168.65.254:8001
       # AI Service Configuration - Ollama for local development
       OLLAMA_BASE_URL: http://host.docker.internal:11434   # FREE local AI (recommended for dev)
       # Optional: Add other services if needed
@@ -84,6 +88,8 @@ services:
       DATABASE_PASSWORD: password
       REDIS_URL: redis://redis:6379/0
       RAILS_ENV: development
+      # Ruby AI Service Configuration
+      RUBY_AI_SERVICE_URL: http://192.168.65.254:8001
       # AI Service Configuration - Ollama for local development
       OLLAMA_BASE_URL: http://host.docker.internal:11434   # FREE local AI (recommended for dev)
       # Optional: Add other services if needed

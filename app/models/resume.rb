@@ -68,19 +68,10 @@ class Resume < ApplicationRecord
     end
   end
 
-  # Trigger fast AI processing 
+  # AI Processing Methods
   def process_with_ai!(job_description_id = nil, ai_provider = 'ollama')
-    Rails.logger.info "🚀 Starting fast AI processing for resume #{id}"
-    
-    # Reset processing status
-    update!(
-      processing_status: 'queued',
-      processing_error: nil,
-      processing_started_at: nil
-    )
-    
-    # Queue job with high priority for immediate processing
-    ResumeProcessingJob.set(queue: :high).perform_later(id, job_description_id, ai_provider)
+    self.update!(processing_status: 'queued')
+    ResumeProcessingJob.perform_later(self.id, job_description_id, ai_provider)
   end
 
   # Tenant-aware method to get current tenant context
@@ -92,11 +83,7 @@ class Resume < ApplicationRecord
     file.attached? ? file.filename.to_s : 'No file attached'
   end
 
-  # AI Processing Methods
-  def process_with_ai!(job_description_id = nil, ai_provider = 'ollama')
-    self.update!(processing_status: 'queued')
-    ResumeProcessingJob.perform_later(self.id, job_description_id, ai_provider)
-  end
+
 
   def ai_extracted_data
     {
