@@ -23,7 +23,8 @@ class BasicTextProcessor
     
     # Simple name extraction (first line or before email)
     lines = text.split("\n").map(&:strip).reject(&:empty?)
-    name = lines.first&.length&.< 50 ? lines.first : "Name not found"
+    first_line = lines.first
+    name = (first_line && first_line.length < 50) ? first_line : "Name not found"
 
     {
       name: name,

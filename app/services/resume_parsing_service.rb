@@ -131,64 +131,83 @@ class ResumeParsingService
     begin
       require 'pdf-reader'
       
-      # Try different methods to access the file content
-      if @resume.file.attached?
-        # Method 1: Try to open directly from Active Storage
-        begin
-          @resume.file.open do |file|
-            reader = PDF::Reader.new(file)
-            text = reader.pages.map(&:text).join("\n")
-            return text.present? ? text : 'Unable to extract text from PDF'
-          end
-        rescue => e
-          Rails.logger.error "PDF extraction method 1 failed: #{e.message}"
-          
-          # Method 2: Try downloading to temporary file with proper path handling
-          begin
-            temp_file = Tempfile.new(['resume', '.pdf'])
-            temp_file.binmode
-            
-            # Use the blob directly
-            @resume.file.blob.open do |blob_file|
-              temp_file.write(blob_file.read)
-            end
-            temp_file.rewind
-            
-            reader = PDF::Reader.new(temp_file.path)
-            text = reader.pages.map(&:text).join("\n")
-            temp_file.close
-            temp_file.unlink
-            
-            return text.present? ? text : 'Unable to extract text from PDF'
-          rescue => e
-            Rails.logger.error "PDF extraction method 2 failed: #{e.message}"
-            
-            # Method 3: Try using ActiveStorage download
-            begin
-              pdf_data = @resume.file.download
-              temp_file = Tempfile.new(['resume', '.pdf'])
-              temp_file.binmode
-              temp_file.write(pdf_data)
-              temp_file.rewind
-              
-              reader = PDF::Reader.new(temp_file.path)
-              text = reader.pages.map(&:text).join("\n")
-              temp_file.close
-              temp_file.unlink
-              
-              return text.present? ? text : 'Unable to extract text from PDF - file may be image-based'
-            rescue => e
-              Rails.logger.error "PDF extraction method 3 failed: #{e.message}"
-              return 'PDF extraction failed - please try uploading a text-based PDF file'
-            end
-          end
-        end
-      else
-        return 'No file attached'
+      unless @resume.file.attached?
+        return 'No file attached to resume'
       end
+      
+      Rails.logger.info "Attempting PDF extraction for resume #{@resume.id}"
+      
+      # Method 1: Download file to guaranteed persistent temp file
+      temp_file = nil
+      begin
+        temp_file = Tempfile.new(['resume_extraction', '.pdf'], Dir.tmpdir)
+        temp_file.binmode
+        
+        # Download the complete file content
+        Rails.logger.info "Downloading resume file to temporary location"
+        @resume.file.blob.open do |blob_io|
+          IO.copy_stream(blob_io, temp_file)
+        end
+        temp_file.flush
+        temp_file.rewind
+        
+        # Verify file exists and has content
+        unless File.exist?(temp_file.path) && File.size(temp_file.path) > 0
+          raise "Downloaded file is empty or missing: #{temp_file.path}"
+        end
+        
+        Rails.logger.info "Processing PDF file (#{File.size(temp_file.path)} bytes)"
+        
+        # Extract text using PDF reader
+        reader = PDF::Reader.new(temp_file.path)
+        text = reader.pages.map(&:text).join("\n")
+        
+        return text.present? ? text.strip : 'PDF appears to be empty or image-based'
+        
+      rescue => e
+        Rails.logger.error "PDF extraction failed: #{e.class.name}: #{e.message}"
+        
+        # Method 2: Try direct blob access as fallback
+        begin
+          Rails.logger.info "Trying direct blob access as fallback"
+          
+          blob_data = @resume.file.blob.download
+          if blob_data.empty?
+            return 'PDF file appears to be empty'
+          end
+          
+          # Create a new temp file for this attempt
+          fallback_temp = Tempfile.new(['resume_fallback', '.pdf'], Dir.tmpdir)
+          fallback_temp.binmode
+          fallback_temp.write(blob_data)
+          fallback_temp.flush
+          fallback_temp.rewind
+          
+          reader = PDF::Reader.new(fallback_temp.path)
+          text = reader.pages.map(&:text).join("\n")
+          
+          fallback_temp.close
+          fallback_temp.unlink
+          
+          return text.present? ? text.strip : 'PDF processed but no text content found'
+          
+        rescue => fallback_error
+          Rails.logger.error "Fallback PDF extraction also failed: #{fallback_error.message}"
+          return 'Unable to extract text from PDF. File may be corrupted, password-protected, or image-based.'
+        end
+        
+      ensure
+        # Clean up temp file
+        if temp_file
+          temp_file.close unless temp_file.closed?
+          temp_file.unlink if File.exist?(temp_file.path)
+        end
+      end
+      
     rescue => e
-      Rails.logger.error "PDF extraction error: #{e.class}: #{e.message}"
-      'Error extracting text from PDF - please ensure the file is a valid PDF'
+      Rails.logger.error "PDF processing error: #{e.class.name}: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      'Critical error during PDF processing. Please contact support.'
     end
   end
 

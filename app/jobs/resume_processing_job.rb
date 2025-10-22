@@ -31,78 +31,28 @@ class ResumeProcessingJob < ApplicationJob
     resume = Resume.find(resume_id)
     job_description = job_description_id ? JobDescription.find(job_description_id) : nil
     
-    ai_service = AiExtractionService.new
-    
     # Update resume status immediately
     resume.update!(
       processing_status: 'processing',
       processing_started_at: start_time
     )
     
-    Rails.logger.info "🚀 Starting fast AI processing for resume #{resume.id} with #{ai_provider}"
+    Rails.logger.info "🚀 Starting robust AI processing for resume #{resume.id} with #{ai_provider}"
     
     begin
-      # Try AI service health check with short timeout
-      health_status = nil
-      begin
-        Timeout::timeout(5) do
-          health_status = ai_service.health_check
-        end
-      rescue Timeout::Error
-        Rails.logger.warn "Health check timeout, proceeding with basic processing"
-        ai_provider = 'basic'  # Fallback to basic processing
-      end
+      # Extract data using multiple strategies with robust fallback
+      extraction_result = extract_with_fallback_strategies(resume, ai_provider)
       
-      # Extract data using Active Storage file
-      extraction_result = nil
-      
-      resume.file.blob.open do |file|
-        # Extract structured data with fallback
-        extraction_result = ai_service.extract_structured_data(
-          file.path, 
-          provider: ai_provider
-        )
-        
-        # Check if extraction failed and we got an error
-        if extraction_result[:error] && !extraction_result[:data] && !extraction_result['data']
-          # Try one more time with basic processing if we haven't already
-          if ai_provider != 'basic'
-            Rails.logger.info "Retrying with basic processing as fallback"
-            extraction_result = ai_service.extract_structured_data(
-              file.path, 
-              provider: 'basic'
-            )
-          end
-          
-          # If still failing, create minimal extracted data to show something
-          if extraction_result[:error] && !extraction_result[:data] && !extraction_result['data']
-            Rails.logger.warn "All extraction attempts failed, creating basic extraction result"
-            extraction_result = create_fallback_extraction(resume)
-          end
-        end
-      end
-      
-      # Update resume with extracted data (even if partial)
+      # Update resume with extracted data (always succeeds)
       update_resume_with_extraction(resume, extraction_result)
       
       # Optional enhancement (don't let this block completion)
       if job_description
-        Rails.logger.info "Attempting quick enhancement for resume #{resume.id}"
+        Rails.logger.info "Attempting enhancement for resume #{resume.id}"
         
         begin
-          Timeout::timeout(30) do  # Max 30 seconds for enhancement
-            enhancement_result = ai_service.enhance_resume(
-              extraction_result,
-              job_description.content,
-              provider: ai_provider
-            )
-            
-            unless enhancement_result[:error] || enhancement_result['skipped']
-              update_resume_with_enhancement(resume, enhancement_result, job_description)
-            end
-          end
-        rescue Timeout::Error
-          Rails.logger.warn "Enhancement timeout, skipping for faster completion"
+          enhancement_result = perform_enhancement_with_fallback(resume, job_description, ai_provider)
+          update_resume_with_enhancement(resume, enhancement_result, job_description)
         rescue => enhancement_error
           Rails.logger.warn "Enhancement failed, continuing: #{enhancement_error.message}"
         end
@@ -140,29 +90,178 @@ class ResumeProcessingJob < ApplicationJob
     end
   end
 
+  # Multi-strategy extraction with robust fallback
+  def extract_with_fallback_strategies(resume, ai_provider)
+    Rails.logger.info "🔍 Starting multi-strategy extraction for resume #{resume.id}"
+    
+    # Use pre-extracted text from database to avoid ActiveStorage issues
+    pdf_text = resume.raw_text
+    
+    if pdf_text.blank?
+      Rails.logger.error "❌ No pre-extracted text available for resume #{resume.id}"
+      Rails.logger.info "Attempting emergency extraction..."
+      
+      # Emergency extraction as fallback
+      begin
+        temp_file = Tempfile.new(['resume_processing', '.pdf'], Dir.tmpdir)
+        temp_file.binmode
+        
+        resume.file.blob.open do |blob_io|
+          IO.copy_stream(blob_io, temp_file)
+        end
+        temp_file.flush
+        
+        require 'pdf-reader'
+        reader = PDF::Reader.new(temp_file.path)
+        pdf_text = reader.pages.map(&:text).join("\n").strip
+        
+        # Store for future use
+        resume.update_column(:raw_text, pdf_text) if pdf_text.present?
+        Rails.logger.info "✅ Emergency extraction successful: #{pdf_text.length} characters"
+        
+      rescue => e
+        Rails.logger.error "Emergency extraction failed: #{e.message}"
+        pdf_text = "Unable to extract text from PDF: #{e.message}"
+      ensure
+        temp_file&.unlink
+      end
+    else
+      Rails.logger.info "✅ Using pre-extracted text: #{pdf_text.length} characters"
+    end
+    
+    # Strategy 1: Try AI processing with pre-extracted text (Ollama)
+    if pdf_text.present? && !pdf_text.include?("Unable to extract")
+      Rails.logger.info "Strategy 1: Using AI processing with pre-extracted text"
+      begin
+        parsing_service = ResumeParsingService.new(resume)
+        
+        # Use Ollama with the pre-extracted text
+        if ai_provider == 'ollama' && parsing_service.send(:check_ollama_availability)
+          result = parsing_service.send(:parse_with_ollama, pdf_text)
+          
+          if !result[:error] && result[:extracted_data]
+            Rails.logger.info "✅ Ollama processing successful"
+            return {
+              'structured_data' => result[:extracted_data],
+              'original_text' => pdf_text,
+              'provider_used' => 'ollama'
+            }
+          else
+            Rails.logger.warn "Ollama processing failed: #{result[:error]}"
+          end
+        end
+      rescue => e
+        Rails.logger.warn "Ollama processing error: #{e.message}"
+      end
+    end
+    
+    # Strategy 2: Try AI microservice (if available and healthy)
+    if pdf_text.present? && !pdf_text.include?("Unable to extract")
+      Rails.logger.info "Strategy 2: Attempting AI microservice extraction"
+      begin
+        ai_service = AiExtractionService.new
+        health_status = ai_service.health_check
+        
+        if health_status && health_status['status'] == 'healthy'
+          # Create temporary file for microservice
+          temp_file = Tempfile.new(['resume_processing', '.pdf'], Dir.tmpdir)
+          begin
+            resume.file.blob.open do |blob_io|
+              IO.copy_stream(blob_io, temp_file)
+            end
+            temp_file.flush
+            
+            result = ai_service.extract_structured_data(temp_file.path, provider: ai_provider)
+            
+            if !result[:error] && result['structured_data']
+              Rails.logger.info "✅ Microservice extraction successful"
+              result['original_text'] = pdf_text
+              return result
+            else
+              Rails.logger.warn "Microservice extraction failed: #{result[:error]}"
+            end
+          ensure
+            temp_file&.unlink
+          end
+        end
+      rescue => e
+        Rails.logger.warn "Microservice extraction error: #{e.message}"
+      end
+    end
+
+    # Strategy 3: Use basic parsing with pre-extracted text
+    if pdf_text.present? && !pdf_text.include?("Unable to extract")
+      Rails.logger.info "Strategy 3: Using basic parsing with pre-extracted text"
+      begin
+        parsing_service = ResumeParsingService.new(resume)
+        result = parsing_service.send(:parse_with_basic_extraction, pdf_text)
+        Rails.logger.info "✅ Basic parsing successful"
+        return {
+          'structured_data' => result[:extracted_data],
+          'original_text' => pdf_text,
+          'provider_used' => 'basic_extraction'
+        }
+        
+      rescue => e
+        Rails.logger.warn "Basic parsing failed: #{e.message}"
+      end
+    end
+    
+    # Strategy 4: Create minimal fallback data with available text
+    Rails.logger.info "Strategy 4: Creating minimal fallback extraction"
+    return create_fallback_extraction(resume, pdf_text)
+  end
+
+  def perform_enhancement_with_fallback(resume, job_description, ai_provider)
+    # Try AI microservice enhancement
+    begin
+      ai_service = AiExtractionService.new
+      result = ai_service.enhance_resume(
+        resume.extracted_data || {},
+        job_description.content,
+        provider: ai_provider
+      )
+      
+      return result unless result[:error] || result['skipped']
+    rescue => e
+      Rails.logger.warn "Microservice enhancement error: #{e.message}"
+    end
+    
+    # Fallback to Rails-based enhancement
+    begin
+      parsing_service = ResumeParsingService.new(resume)
+      return parsing_service.enhance_content(job_description)
+    rescue => e
+      Rails.logger.warn "Rails enhancement error: #{e.message}"
+      return { error: e.message }
+    end
+  end
+
   private
 
   # Create basic extraction when AI fails completely
-  def create_fallback_extraction(resume)
+  def create_fallback_extraction(resume, pdf_text = nil)
     Rails.logger.info "Creating fallback extraction for resume #{resume.id}"
     
+    # Use available text or fallback message
+    available_text = pdf_text.present? ? pdf_text : 'Text extraction failed - no content available'
+    
     {
-      'data' => {
+      'structured_data' => {
         'personal_info' => {
           'name' => resume.title || 'Unknown',
           'email' => nil,
           'phone' => nil,
           'location' => nil
         },
-        'summary' => 'Unable to extract summary - please review manually',
+        'summary' => pdf_text.present? ? 'Manual review needed - raw text available' : 'Unable to extract summary - please review manually',
         'skills' => [],
         'experience' => [],
-        'education' => [],
-        'raw_text' => 'Text extraction failed'
+        'education' => []
       },
+      'original_text' => available_text,
       'provider_used' => 'fallback',
-      'confidence_score' => 0.1,
-      'text' => 'Extraction failed - manual review needed'
+      'confidence_score' => pdf_text.present? ? 0.3 : 0.1
     }
   end
 

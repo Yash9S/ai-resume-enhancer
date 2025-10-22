@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_22_211217) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -106,6 +106,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
     t.text "extracted_education"
     t.text "extracted_text"
     t.decimal "extraction_confidence", precision: 5, scale: 2
+    t.text "raw_text"
     t.index ["created_at"], name: "index_resumes_on_created_at"
     t.index ["processing_status", "created_at"], name: "index_resumes_on_processing_status_and_created_at"
     t.index ["processing_status"], name: "index_resumes_on_processing_status"

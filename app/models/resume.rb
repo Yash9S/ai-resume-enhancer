@@ -7,6 +7,9 @@ class Resume < ApplicationRecord
   validates :title, presence: true
   validates :file, presence: true
   validate :acceptable_file_type
+  
+  # Pre-extract PDF text when file is attached to avoid ActiveStorage issues in workers
+  after_commit :pre_extract_pdf_text, on: [:create, :update], if: :file_changed?
 
   enum :status, { uploaded: 0, processing: 1, processed: 2, failed: 3 }
   enum :processing_status, { 
@@ -105,6 +108,61 @@ class Resume < ApplicationRecord
   def processing_time
     return nil unless processing_started_at && processing_completed_at
     (processing_completed_at - processing_started_at).to_i
+  end
+
+  # Check if file has changed (for pre-extraction trigger)
+  def file_changed?
+    file.attached? && (saved_change_to_id? || file.attachment.saved_change_to_blob_id?)
+  end
+
+  # Pre-extract PDF text to avoid ActiveStorage issues in Sidekiq workers
+  def pre_extract_pdf_text
+    return unless file.attached?
+    return if raw_text.present? # Don't re-extract if already done
+    
+    Rails.logger.info "📄 Pre-extracting PDF text for resume #{id}..."
+    
+    begin
+      # Use a similar approach to ResumeParsingService but in main thread
+      temp_file = Tempfile.new(['resume', '.pdf'])
+      begin
+        # Download file content to temp file
+        file.open do |blob_file|
+          IO.copy_stream(blob_file, temp_file)
+        end
+        temp_file.close
+        
+        # Extract text using PDF::Reader
+        require 'pdf-reader'
+        reader = PDF::Reader.new(temp_file.path)
+        extracted_text = ""
+        
+        reader.pages.each_with_index do |page, index|
+          begin
+            page_text = page.text.to_s.strip
+            extracted_text += page_text + "\n" if page_text.present?
+          rescue => page_error
+            Rails.logger.warn "⚠️ Error extracting page #{index + 1}: #{page_error.message}"
+          end
+        end
+        
+        if extracted_text.present?
+          update_column(:raw_text, extracted_text.strip)
+          Rails.logger.info "✅ Pre-extracted #{extracted_text.length} characters from PDF"
+        else
+          Rails.logger.warn "⚠️ No text could be extracted from PDF"
+          update_column(:raw_text, "No extractable text found in PDF")
+        end
+        
+      ensure
+        temp_file.unlink if temp_file
+      end
+      
+    rescue => error
+      Rails.logger.error "❌ Pre-extraction failed for resume #{id}: #{error.message}"
+      Rails.logger.error error.backtrace.join("\n")
+      update_column(:raw_text, "Pre-extraction failed: #{error.message}")
+    end
   end
 
   private
