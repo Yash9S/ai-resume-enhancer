@@ -14,12 +14,13 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Main application route (serves React app)
-  root "dashboard#react_index"
+  # Main application route
+  root "dashboard#index"
   
   # Dashboard routes
   get 'dashboard', to: 'dashboard#index'
   get 'react', to: 'dashboard#react_index'
+  get 'microfrontend', to: 'dashboard#microfrontend_demo'
   get 'test_notifications/:type', to: 'dashboard#test_notifications', as: 'test_notifications'
   
   # Main application resources

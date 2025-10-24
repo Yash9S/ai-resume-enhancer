@@ -3,10 +3,10 @@ class JobDescriptionsController < ApplicationController
   before_action :set_job_description, only: [:show, :edit, :update, :destroy]
 
   def index
-    @job_descriptions = current_user.job_descriptions
-                                   .page(params[:page])
-                                   .per(10)
-                                   .order(created_at: :desc)
+    @job_descriptions = current_user.job_descriptions.order(created_at: :desc)
+  rescue => e
+    Rails.logger.error "JobDescriptions#index error: #{e.message}"
+    @job_descriptions = []
   end
 
   def show

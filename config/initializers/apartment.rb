@@ -24,50 +24,24 @@ Apartment.configure do |config|
   # Dynamic tenant names from Tenant model
   config.tenant_names = lambda { 
     begin
-      Tenant.active.pluck(:schema_name) 
-    rescue
-      [] # Return empty array if Tenant table doesn't exist yet
+      # Return active tenant schema names for MySQL databases
+      Tenant.where(status: 'active').pluck(:schema_name) 
+    rescue ActiveRecord::StatementInvalid, NameError
+      # Return default tenant during initialization or if Tenant table doesn't exist
+      ['test']
     end
   }
 
-  # Use PostgreSQL schemas for better performance and easier management
-  config.use_schemas = true
+  # Use MySQL databases for multi-tenancy (MySQL doesn't support schemas like PostgreSQL)
+  config.use_schemas = false
 
-  #
-  # ==> PostgreSQL only options
-
-  # Apartment can be forced to use raw SQL dumps instead of schema.rb for creating new schemas.
-  # Use this when you are using some extra features in PostgreSQL that can't be represented in
-  # schema.rb, like materialized views etc. (only applies with use_schemas set to true).
-  # (Note: this option doesn't use db/structure.sql, it creates SQL dump by executing pg_dump)
-  #
-  # config.use_sql = false
-
-  # There are cases where you might want some schemas to always be in your search_path
-  # e.g when using a PostgreSQL extension like hstore.
-  # Any schemas added here will be available along with your selected Tenant.
-  #
-  # config.persistent_schemas = %w{ hstore }
-
-  # <== PostgreSQL only options
-  #
-
-  # By default, and only when not using PostgreSQL schemas, Apartment will prepend the environment
-  # to the tenant name to ensure there is no conflict between your environments.
-  # This is mainly for the benefit of your development and test environments.
-  # Uncomment the line below if you want to disable this behaviour in production.
-  #
-  # config.prepend_environment = !Rails.env.production?
-
-  # When using PostgreSQL schemas, the database dump will be namespaced, and
-  # apartment will substitute the default namespace (usually public) with the
-  # name of the new tenant when creating a new tenant. Some items must maintain
-  # a reference to the default namespace (ie public) - for instance, a default
-  # uuid generation. Uncomment the line below to create a list of namespaced
-  # items in the schema dump that should *not* have their namespace replaced by
-  # the new tenant
-  #
-  # config.pg_excluded_names = ["uuid_generate_v4"]
+  # For MySQL: We want databases named exactly like the tenant schema names
+  # So "test" tenant should use "test" database (not ai_resume_parser_test)
+  # This matches how the databases are currently created
+  
+  # Disable prepend_environment to use simple tenant names that match existing DBs
+  config.prepend_environment = false
+  config.append_environment = false
 end
 
 # Setup a custom Tenant switching middleware. The Proc should return the name of the Tenant that

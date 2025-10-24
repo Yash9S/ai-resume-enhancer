@@ -1,0 +1,17 @@
+source 'https://rubygems.org'
+ruby '3.1.2'
+
+gem 'rails', '~> 7.1.0'
+gem 'puma', '~> 6.0'
+gem 'bootsnap', '>= 1.4.4', require: false
+
+# PDF processing
+gem 'pdf-reader', '~> 2.11'
+gem 'docx', '~> 0.6.0'
+
+# CORS handling
+gem 'rack-cors'
+
+group :development, :test do
+  gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]
+end

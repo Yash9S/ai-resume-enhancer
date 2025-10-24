@@ -10,18 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
-  create_schema "acme"
-  create_schema "globalsol"
-  create_schema "techstart"
-  create_schema "test"
-
-  # These are extensions that must be enabled in order to support this database
-  enable_extension "pg_catalog.plpgsql"
-  enable_extension "pg_trgm"
-  enable_extension "uuid-ossp"
-
-  create_table "active_storage_attachments", force: :cascade do |t|
+ActiveRecord::Schema[8.0].define(version: 2025_10_22_211217) do
+  create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
     t.bigint "record_id", null: false
@@ -31,7 +21,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
-  create_table "active_storage_blobs", force: :cascade do |t|
+  create_table "active_storage_blobs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "key", null: false
     t.string "filename", null: false
     t.string "content_type"
@@ -43,13 +33,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
-  create_table "active_storage_variant_records", force: :cascade do |t|
+  create_table "active_storage_variant_records", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "job_descriptions", force: :cascade do |t|
+  create_table "job_descriptions", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "title", null: false
     t.text "content"
@@ -69,7 +59,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
     t.index ["user_id"], name: "index_job_descriptions_on_user_id"
   end
 
-  create_table "resume_processings", force: :cascade do |t|
+  create_table "resume_processings", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "resume_id", null: false
     t.bigint "job_description_id"
     t.bigint "user_id", null: false
@@ -91,7 +81,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
     t.index ["user_id"], name: "index_resume_processings_on_user_id"
   end
 
-  create_table "resumes", force: :cascade do |t|
+  create_table "resumes", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "title", null: false
     t.text "original_content"
@@ -116,6 +106,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
     t.text "extracted_education"
     t.text "extracted_text"
     t.decimal "extraction_confidence", precision: 5, scale: 2
+    t.text "raw_text"
     t.index ["created_at"], name: "index_resumes_on_created_at"
     t.index ["processing_status", "created_at"], name: "index_resumes_on_processing_status_and_created_at"
     t.index ["processing_status"], name: "index_resumes_on_processing_status"
@@ -123,7 +114,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
     t.index ["user_id"], name: "index_resumes_on_user_id"
   end
 
-  create_table "tenants", force: :cascade do |t|
+  create_table "tenants", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "subdomain", null: false
     t.string "schema_name", null: false
@@ -136,7 +127,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
     t.index ["subdomain"], name: "index_tenants_on_subdomain", unique: true
   end
 
-  create_table "users", force: :cascade do |t|
+  create_table "users", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.integer "role", default: 0, null: false
@@ -153,9 +144,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_21_031236) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "job_descriptions", "users"
   add_foreign_key "resume_processings", "job_descriptions"
   add_foreign_key "resume_processings", "resumes"
-  add_foreign_key "resume_processings", "users"
   add_foreign_key "users", "tenants"
 end

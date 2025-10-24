@@ -89,3 +89,28 @@ dump.rdb
 
 # Ignore the entire apartment-2.2.1 directory (we don't want to track the patched gem)
 /apartment-2.2.1/
+
+# Python migration cleanup - ignore old Python files
+*.py
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+pip-log.txt
+pip-delete-this-directory.txt
+.env/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Temporary files from development
+jd.txt
+check_status.rb
+fix_resume.rb
+
+# Docker compose development file  
+init.sql

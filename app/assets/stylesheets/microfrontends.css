@@ -1,0 +1,47 @@
+/* Microfrontend specific styles */
+.microfrontend-dashboard {
+  min-height: 400px;
+}
+
+.microfrontend-container {
+  min-height: 200px;
+  position: relative;
+}
+
+.microfrontend-container .card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.microfrontend-container .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+}
+
+/* Loading animations for microfrontends */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.microfrontend-container .spinner-border {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .microfrontend-dashboard .display-4 {
+    font-size: 2rem;
+  }
+  
+  .microfrontend-container {
+    min-height: 150px;
+  }
+}
