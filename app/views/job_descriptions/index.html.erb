@@ -1,52 +1,169 @@
-<h1>Job Descriptions</h1>
-<div class="row">
-  <% @job_descriptions.each do |job_description| %>
-    <div class="col-md-6 col-lg-4 mb-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title text-primary"><%= job_description.title %></h5>
-          <h6 class="card-subtitle mb-2 text-muted"><%= job_description.company %></h6>
-          <p class="card-text">
-            <small class="text-muted">
-              <i class="fas fa-map-marker-alt"></i> <%= job_description.location || 'Remote' %><br>
-              <i class="fas fa-briefcase"></i> <%= job_description.employment_type || 'Full time' %><br>
-              <i class="fas fa-layer-group"></i> <%= job_description.experience_level || 'Mid Level' %><br>
-              <i class="fas fa-calendar"></i> <%= job_description.created_at.strftime("%B %d, %Y") %>
-            </small>
-          </p>
-          <p class="card-text">
-            <% if job_description.description.present? %>
-              <%= job_description.description.length > 100 ? job_description.description[0, 100] + '...' : job_description.description %>
-            <% else %>
-              No description specified
+<!-- Microfrontend Container -->
+<div id="job-descriptions-microfrontend" 
+     data-job-descriptions='<%= @job_descriptions.to_json.html_safe %>'
+     data-user='<%= { email: current_user.email, role: current_user.role || "user" }.to_json.html_safe %>'>
+  <!-- Loading State -->
+  <div class="text-center py-5">
+    <div class="spinner-border text-primary mb-3" role="status">
+      <span class="visually-hidden">Loading microfrontend...</span>
+    </div>
+    <h4>Loading Job Descriptions</h4>
+    <p class="text-muted">Initializing React microfrontend...</p>
+  </div>
+</div>
+<!-- Fallback: Traditional Rails View (if microfrontend fails) -->
+<div id="job-descriptions-fallback" style="display: none;">
+  <div class="alert alert-warning" role="alert">
+    <h4 class="alert-heading">
+      <i class="fas fa-exclamation-triangle me-2"></i>Microfrontend Unavailable
+    </h4>
+    <p>The React microfrontend failed to load. Here's the traditional Rails view:</p>
+    <hr>
+    <p class="mb-0">
+      <strong>Note:</strong> Make sure the widget service is running on port 4005.
+    </p>
+  </div>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Job Descriptions <small class="text-muted">(Fallback)</small></h1>
+    <%= link_to "Add Job Description", new_job_description_path, class: "btn btn-primary" %>
+  </div>
+  <div class="row">
+    <% @job_descriptions.each do |job_description| %>
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title text-primary"><%= job_description.title %></h5>
+            <h6 class="card-subtitle mb-2 text-muted"><%= job_description.company %></h6>
+            <p class="card-text">
+              <small class="text-muted">
+                <i class="fas fa-map-marker-alt"></i> <%= job_description.location || 'Remote' %><br>
+                <i class="fas fa-briefcase"></i> <%= job_description.employment_type || 'Full time' %><br>
+                <i class="fas fa-layer-group"></i> <%= job_description.experience_level || 'Mid Level' %><br>
+                <i class="fas fa-calendar"></i> <%= job_description.created_at.strftime("%B %d, %Y") %>
+              </small>
+            </p>
+            <p class="card-text">
+              <% if job_description.description.present? %>
+                <%= job_description.description.length > 100 ? job_description.description[0, 100] + '...' : job_description.description %>
+              <% else %>
+                No description specified
+              <% end %>
+            </p>
+            <% if job_description.required_skills.present? %>
+              <div class="mb-3">
+                <strong>Key Skills:</strong><br>
+                <% job_description.required_skills.split(',').first(3).each do |skill| %>
+                  <span class="badge bg-secondary me-1"><%= skill.strip.upcase %></span>
+                <% end %>
+                <% if job_description.required_skills.split(',').length > 3 %>
+                  <span class="badge bg-dark">+<%= job_description.required_skills.split(',').length - 3 %> MORE</span>
+                <% end %>
+              </div>
             <% end %>
-          </p>
-          <% if job_description.required_skills.present? %>
-            <div class="mb-3">
-              <strong>Key Skills:</strong><br>
-              <% job_description.required_skills.split(',').first(3).each do |skill| %>
-                <span class="badge bg-secondary me-1"><%= skill.strip.upcase %></span>
-              <% end %>
-              <% if job_description.required_skills.split(',').length > 3 %>
-                <span class="badge bg-dark">+<%= job_description.required_skills.split(',').length - 3 %> MORE</span>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-        <div class="card-footer bg-transparent">
-          <%= link_to "View", job_description_path(job_description), class: "btn btn-primary btn-sm" %>
-          <%= link_to "Edit", edit_job_description_path(job_description), class: "btn btn-outline-primary btn-sm" %>
-          <%= link_to "Delete", job_description_path(job_description), method: :delete, 
-                      confirm: "Are you sure?", class: "btn btn-outline-danger btn-sm" %>
+          </div>
+          <div class="card-footer bg-transparent">
+            <%= link_to "View", job_description_path(job_description), class: "btn btn-primary btn-sm" %>
+            <%= link_to "Edit", edit_job_description_path(job_description), class: "btn btn-outline-primary btn-sm" %>
+            <%= link_to "Delete", job_description_path(job_description), method: :delete, 
+                        confirm: "Are you sure?", class: "btn btn-outline-danger btn-sm" %>
+          </div>
         </div>
       </div>
+    <% end %>
+  </div>
+  <% if @job_descriptions.empty? %>
+    <div class="text-center mt-5">
+      <h4 class="text-muted">No job descriptions yet</h4>
+      <p class="text-muted">Start by adding your first job description.</p>
+      <%= link_to "Add Job Description", new_job_description_path, class: "btn btn-primary" %>
     </div>
   <% end %>
 </div>
-<% if @job_descriptions.empty? %>
-  <div class="text-center mt-5">
-    <h4 class="text-muted">No job descriptions yet</h4>
-    <p class="text-muted">Start by adding your first job description.</p>
-    <%= link_to "Add Job Description", new_job_description_path, class: "btn btn-primary" %>
-  </div>
-<% end %>
+<!-- Microfrontend Loader Script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔄 Starting Job Descriptions Microfrontend...');
+
+    const container = document.getElementById('job-descriptions-microfrontend');
+    const fallback = document.getElementById('job-descriptions-fallback');
+
+    if (!container) {
+      console.error('❌ Microfrontend container not found');
+      return;
+    }
+
+    // Extract data from container attributes
+    const jobDescriptionsData = container.dataset.jobDescriptions;
+    const userData = container.dataset.user;
+
+    let jobDescriptions = [];
+    let user = { email: 'unknown', role: 'user' };
+
+    try {
+      jobDescriptions = jobDescriptionsData ? JSON.parse(jobDescriptionsData) : [];
+      user = userData ? JSON.parse(userData) : user;
+    } catch (e) {
+      console.warn('Warning: Could not parse data attributes', e);
+    }
+
+    console.log('📦 Microfrontend Data:', {
+      jobDescriptions: jobDescriptions.length + ' jobs',
+      user: user.email
+    });
+
+    // Set a timeout for fallback
+    const fallbackTimer = setTimeout(() => {
+      console.warn('⚠️ Microfrontend loading timeout - showing fallback');
+      container.style.display = 'none';
+      fallback.style.display = 'block';
+    }, 10000); // 10 second timeout
+
+    // Try to load the microfrontend using SystemJS
+    if (typeof System !== 'undefined') {
+      console.log('🔍 SystemJS available, importing job-descriptions-widget...');
+
+      System.import('job-descriptions-widget')
+        .then((microfrontend) => {
+          console.log('✅ Microfrontend module loaded:', microfrontend);
+          clearTimeout(fallbackTimer);
+
+          // Get the lifecycle functions
+          const { bootstrap, mount, unmount } = microfrontend.default || microfrontend;
+
+          if (bootstrap && mount && unmount) {
+            // Register with Single SPA
+            return System.import('single-spa').then(({ registerApplication, start }) => {
+              console.log('🎯 Registering microfrontend with Single SPA...');
+
+              registerApplication({
+                name: 'job-descriptions-app',
+                app: () => Promise.resolve({ bootstrap, mount, unmount }),
+                activeWhen: () => true, // Always active when on this page
+                customProps: {
+                  domElement: container,
+                  jobDescriptions: jobDescriptions,
+                  user: user
+                }
+              });
+
+              start();
+              console.log('🚀 Single SPA started with job descriptions microfrontend!');
+            });
+          } else {
+            throw new Error('Microfrontend lifecycle functions not found');
+          }
+        })
+        .catch((error) => {
+          console.error('❌ Failed to load Job Descriptions Microfrontend:', error);
+          clearTimeout(fallbackTimer);
+          container.style.display = 'none';
+          fallback.style.display = 'block';
+        });
+    } else {
+      console.error('❌ SystemJS not available');
+      clearTimeout(fallbackTimer);
+      container.style.display = 'none';
+      fallback.style.display = 'block';
+    }
+  });
+</script>

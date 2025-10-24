@@ -1,6 +1,359 @@
-# 🤖 AI Resume Parser - Microservices Architecture
+# AI Resume Parser - Rails Application with Microfrontends
 
-A production-ready Ruby on Rails application with microservices architecture for AI-powered resume parsing and job matching.
+## Project Overview
+This is a Ruby on Rails application for AI-powered resume parsing and enhancement with modern microfrontend architecture. The application allows users to upload resumes, match them against job descriptions, and enhance content using AI.
+
+## Architecture
+- **Framework**: Ruby on Rails 8.0.3 (MVC Architecture)
+- **Database**: MySQL 8.0 with multi-tenancy via Apartment gem
+- **Authentication**: Devise with role-based access (Users, Admins)
+- **File Storage**: Active Storage for resume uploads
+- **AI Integration**: Ollama local AI for resume parsing
+- **Background Jobs**: Sidekiq with Redis for async processing
+- **Microfrontends**: Single SPA + SystemJS ImportMap with React components
+- **Containerization**: Docker Compose for all services
+
+## Core Features
+- Resume upload (PDF/DOCX)
+- Job description matching with AI analysis
+- AI-powered content extraction and enhancement
+- Interactive microfrontend interfaces
+- Real-time processing status tracking
+- Multi-tenant architecture
+- Resume export/download
+- Role-based authentication
+
+## 🚀 Complete Setup Guide
+
+### Prerequisites
+- **Docker & Docker Compose** (v20.10 or higher)
+- **Git** for version control
+- **Web Browser** (Chrome, Firefox, Edge)
+
+### 1. Initial Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/Yash9S/ai-resume-enhancer.git
+cd ai-resume-parser
+
+# Copy environment files (if needed)
+cp .env.example .env  # Edit database credentials if needed
+```
+
+### 2. Start All Services with Docker
+
+```bash
+# Start database and Redis services
+docker-compose up -d database redis
+
+# Wait for database to be healthy (about 30 seconds)
+docker-compose logs database  # Check for "ready for connections"
+
+# Build and start Rails application
+docker-compose up -d web
+
+# Start microfrontend services
+cd microfrontends
+docker-compose up -d widget-service
+cd ..
+```
+
+### 3. Database Setup
+
+```bash
+# Run database setup (run this inside the Rails container)
+docker-compose exec web bash -c "
+  bundle exec rails db:create
+  bundle exec rails db:migrate
+  bundle exec rails db:seed
+"
+
+# Or run migrations locally if Rails is installed
+bundle exec rails db:create db:migrate db:seed
+```
+
+### 4. Start Sidekiq Background Jobs
+
+```bash
+# Option A: Using Docker (recommended)
+docker-compose exec web bundle exec sidekiq
+
+# Option B: Local Sidekiq (if Rails installed locally)
+# In a separate terminal:
+bundle exec sidekiq
+
+# Option C: Windows batch script
+# Double-click: start_sidekiq.bat
+```
+
+### 5. Verify All Services
+
+Check that all services are running:
+
+```bash
+# Check Docker services
+docker-compose ps
+
+# Should show:
+# - database (mysql:8.0) - healthy - port 3306
+# - redis (redis:7-alpine) - healthy - port 6379  
+# - web (rails app) - up - port 3000
+
+# Check microfrontend services
+cd microfrontends && docker-compose ps
+
+# Should show:
+# - widget-service - up - port 4005
+```
+
+### 6. Access the Application
+
+- **Main Application**: http://localhost:3000
+- **Microfrontend Service**: http://localhost:4005
+- **Login**: Use default admin credentials or sign up
+
+## 📊 Service Architecture
+
+### Port Configuration
+- **Rails Application**: Port 3000
+- **MySQL Database**: Port 3306
+- **Redis**: Port 6379
+- **Widget Service (Microfrontends)**: Port 4005
+- **Sidekiq Web UI**: Port 4567 (if enabled)
+
+### Docker Services
+```yaml
+# Main services (docker-compose.yml)
+- database: MySQL 8.0 with health checks
+- redis: Redis 7 Alpine for Sidekiq
+- web: Rails application with Puma server
+
+# Microfrontend services (microfrontends/docker-compose.yml)
+- widget-service: Express.js serving React microfrontends
+```
+
+## 🔧 Development Commands
+
+### Starting Development Environment
+
+```bash
+# Full stack startup (recommended)
+./bin/dev  # If available, or use commands below
+
+# Manual startup:
+# Terminal 1: Start database services
+docker-compose up database redis
+
+# Terminal 2: Start Rails server
+rails server
+
+# Terminal 3: Start Sidekiq
+bundle exec sidekiq
+
+# Terminal 4: Start microfrontend service
+cd microfrontends
+docker-compose up widget-service
+```
+
+### Database Management
+
+```bash
+# Create databases
+rails db:create
+
+# Run migrations
+rails db:migrate
+
+# Seed data (creates tenant databases and sample data)
+rails db:seed
+
+# Reset database (⚠️ DESTRUCTIVE)
+rails db:drop db:create db:migrate db:seed
+
+# Create new tenant
+rails console
+> Tenant.create!(name: "New Company", subdomain: "newco", schema_name: "newco", status: "active")
+```
+
+### Background Job Management
+
+```bash
+# Start Sidekiq worker
+bundle exec sidekiq
+
+# Check job status
+rails console
+> Sidekiq::Queue.new.size  # Check queue size
+> Sidekiq::Workers.new.size  # Check active workers
+
+# Clear failed jobs
+> require 'sidekiq/api'
+> Sidekiq::RetrySet.new.clear
+> Sidekiq::DeadSet.new.clear
+```
+
+### Microfrontend Development
+
+```bash
+# Check microfrontend health
+curl http://localhost:4005/health
+
+# Test microfrontend endpoint
+curl http://localhost:4005/job-descriptions-widget.js
+
+# Rebuild microfrontend service
+cd microfrontends
+docker-compose down widget-service
+docker-compose up --build widget-service
+```
+
+## 🧪 Testing & Debugging
+
+### Service Health Checks
+
+```bash
+# Check all Docker services
+docker-compose ps
+
+# Check database connection
+docker-compose exec database mysql -u ai_resume_parser -p -e "SHOW DATABASES;"
+
+# Check Redis connection
+docker-compose exec redis redis-cli ping
+
+# Check Rails logs
+docker-compose logs web
+
+# Check Sidekiq logs
+docker-compose logs web | grep sidekiq
+```
+
+### Common Issues & Solutions
+
+#### 1. Database Connection Issues
+```bash
+# Check if database is healthy
+docker-compose ps database
+
+# Restart database service
+docker-compose restart database
+
+# Check database logs
+docker-compose logs database
+```
+
+#### 2. Apartment Gem Multi-tenancy Issues
+```bash
+# Check tenant databases exist
+docker-compose exec database mysql -u ai_resume_parser -p -e "SHOW DATABASES;"
+
+# Should show: test, acme, techstart, etc.
+
+# Check apartment configuration
+rails console
+> Apartment.tenant_names
+> Apartment.current  # Should return current tenant
+```
+
+#### 3. Sidekiq Jobs Not Processing
+```bash
+# Check Sidekiq is running
+ps aux | grep sidekiq
+
+# Check Redis connection
+redis-cli ping
+
+# Check job queue
+rails console
+> Sidekiq::Queue.new.size
+> ResumeProcessingJob.perform_later(resume_id: 1)  # Test job
+```
+
+#### 4. Microfrontend Not Loading
+```bash
+# Check widget service is running
+curl http://localhost:4005/health
+
+# Check SystemJS ImportMap in browser console
+# Should see: "Loading Job Descriptions Microfrontend..."
+
+# Check for CORS issues
+curl -H "Origin: http://localhost:3000" http://localhost:4005/job-descriptions-widget.js
+```
+
+## 🏗️ Architecture Details
+
+### Multi-tenancy (Apartment Gem)
+- **Main Database**: `ai_resume_parser_development` (contains Users, Tenants)
+- **Tenant Databases**: `test`, `acme`, `techstart` (contain tenant-specific data)
+- **Elevator**: Custom subdomain-based tenant switching
+- **Default Tenant**: `test` for development
+
+### Microfrontend Architecture
+- **Single SPA**: Orchestrates microfrontend lifecycle
+- **SystemJS ImportMap**: Module resolution for dependencies
+- **React Components**: Interactive UI components
+- **Data Flow**: Rails → HTML data attributes → React props
+
+### Background Processing
+- **Sidekiq**: Async job processing with Redis
+- **ResumeProcessingJob**: AI extraction and analysis
+- **Retry Logic**: Automatic retries with exponential backoff
+- **Monitoring**: Job status tracking and error handling
+
+## 📈 Production Deployment
+
+### Environment Variables
+```bash
+# .env file
+RAILS_ENV=production
+DATABASE_URL=mysql2://user:pass@host:3306/db
+REDIS_URL=redis://host:6379/0
+SECRET_KEY_BASE=your_secret_key
+OLLAMA_BASE_URL=http://ollama:11434
+```
+
+### Docker Production
+```bash
+# Build production images
+docker-compose -f docker-compose.prod.yml build
+
+# Deploy with production settings
+docker-compose -f docker-compose.prod.yml up -d
+
+# Run production migrations
+docker-compose -f docker-compose.prod.yml exec web rails db:migrate
+```
+
+## 🤝 Contributing
+
+1. **Fork the repository**
+2. **Create feature branch**: `git checkout -b feature/amazing-feature`
+3. **Commit changes**: `git commit -m 'Add amazing feature'`
+4. **Push to branch**: `git push origin feature/amazing-feature`
+5. **Open Pull Request**
+
+### Development Guidelines
+- Follow Rails conventions and MVC patterns
+- Write comprehensive tests for all functionality
+- Use semantic commits and proper documentation
+- Maintain separation of concerns with service objects
+- Test microfrontends in multiple browsers
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Issues**: GitHub Issues for bug reports
+- **Documentation**: Check this README and code comments
+- **Community**: Discussions tab for questions
+
+---
+
+**Status**: ✅ Fully Functional - Multi-tenant Rails app with AI processing and microfrontends
 
 ## 🏗️ Architecture Overview
 

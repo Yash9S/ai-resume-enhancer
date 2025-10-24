@@ -24,36 +24,24 @@ Apartment.configure do |config|
   # Dynamic tenant names from Tenant model
   config.tenant_names = lambda { 
     begin
-      Tenant.active.pluck(:schema_name) 
-    rescue
-      [] # Return empty array if Tenant table doesn't exist yet
+      # Return active tenant schema names for MySQL databases
+      Tenant.where(status: 'active').pluck(:schema_name) 
+    rescue ActiveRecord::StatementInvalid, NameError
+      # Return default tenant during initialization or if Tenant table doesn't exist
+      ['test']
     end
   }
 
   # Use MySQL databases for multi-tenancy (MySQL doesn't support schemas like PostgreSQL)
   config.use_schemas = false
 
-  # MySQL specific configuration for tenant database creation
-  # tenant_names should return just the tenant identifiers (schema_name)
-  config.tenant_names = lambda { 
-    begin
-      Tenant.active.pluck(:schema_name) 
-    rescue
-      [] # Return empty array if Tenant table doesn't exist yet
-    end
-  }
-
   # For MySQL: We want databases named exactly like the tenant schema names
-  # So "acme" tenant should use "acme" database (not ai_resume_parser_acme)
+  # So "test" tenant should use "test" database (not ai_resume_parser_test)
   # This matches how the databases are currently created
   
-  # Disable prepend_environment to use simple tenant names
+  # Disable prepend_environment to use simple tenant names that match existing DBs
   config.prepend_environment = false
-
-  # MySQL configuration for database creation
-  # When using MySQL databases for tenants, each tenant gets its own database
-  # The main database contains the public tables (Users, Tenants)
-  # Each tenant database contains the tenant-specific tables (Resumes, etc.)
+  config.append_environment = false
 end
 
 # Setup a custom Tenant switching middleware. The Proc should return the name of the Tenant that
