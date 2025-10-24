@@ -1,171 +1,166 @@
 <% content_for :title, "Dashboard - AI Resume Parser" %>
-
-<%= react_component("App", {
-  currentUser: {
-    id: current_user.id,
-    email: current_user.email,
-    role: current_user.role,
-    is_admin: current_user.admin?
-  },
-  currentView: 'dashboard'
-}) %>
-
-<!-- Minimal Dashboard (Fallback if React fails) -->
-<noscript>
-  <div class="container-fluid px-4">
-    
-    <!-- Minimal Welcome Header -->
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="bg-primary text-white p-3 rounded-3 shadow-sm">
-          <h2 class="mb-1 fw-bold">AI Resume Parser</h2>
-          <p class="mb-0 opacity-75">Enhance your career with AI-powered resume analysis</p>
+<div class="container-fluid px-4">
+  <!-- Welcome Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="bg-primary text-white rounded-3 shadow-sm" style="padding: 2rem 2.5rem; margin: 0 0.5rem;">
+        <h1 class="mb-3 fw-bold" style="font-size: 2.2rem;">Welcome back, <%= current_user.email.split('@').first.capitalize %>!</h1>
+        <p class="mb-0 opacity-90" style="font-size: 1.1rem;">Enhance your career with AI-powered resume analysis</p>
+      </div>
+    </div>
+  </div>
+  <!-- Analytics Cards -->
+  <div class="row mb-4" style="margin: 0; padding: 0 0.5rem;">
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-0 bg-primary text-white h-100 shadow-sm" style="margin: 0 0.5rem;">
+        <div class="card-body text-center" style="padding: 2rem 1.5rem;">
+          <i class="fas fa-file-alt fa-2x mb-3 opacity-75"></i>
+          <div class="display-6 fw-bold"><%= @stats[:total_resumes] %></div>
+          <div class="fs-6 opacity-75">Total Resumes</div>
         </div>
       </div>
     </div>
-    
-    <!-- Clean Analytics Cards -->
-    <div class="row g-3 mb-4">
-      <div class="col-md-3">
-        <div class="card border-0 bg-primary text-white h-100">
-          <div class="card-body text-center py-4">
-            <div class="display-4 fw-bold"><%= @stats[:total_resumes] %></div>
-            <div class="fs-6 opacity-75">Total Resumes</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="col-md-3">
-        <div class="card border-0 bg-success text-white h-100">
-          <div class="card-body text-center py-4">
-            <div class="display-4 fw-bold"><%= @stats[:processed_resumes] %></div>
-            <div class="fs-6 opacity-75">AI Processed</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="col-md-3">
-        <div class="card border-0 bg-info text-white h-100">
-          <div class="card-body text-center py-4">
-            <div class="display-4 fw-bold"><%= @stats[:total_job_descriptions] %></div>
-            <div class="fs-6 opacity-75">Job Descriptions</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="col-md-3">
-        <% processing_rate = @stats[:total_resumes] > 0 ? (@stats[:successful_processings].to_f / @stats[:total_resumes] * 100).round(0) : 0 %>
-        <div class="card border-0 bg-warning text-dark h-100">
-          <div class="card-body text-center py-4">
-            <div class="display-4 fw-bold"><%= processing_rate %>%</div>
-            <div class="fs-6 opacity-75">Success Rate</div>
-          </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-0 bg-success text-white h-100 shadow-sm" style="margin: 0 0.5rem;">
+        <div class="card-body text-center" style="padding: 2rem 1.5rem;">
+          <i class="fas fa-check-circle fa-2x mb-3 opacity-75"></i>
+          <div class="display-6 fw-bold"><%= @stats[:processed_resumes] %></div>
+          <div class="fs-6 opacity-75">AI Processed</div>
         </div>
       </div>
     </div>
-
-    <!-- Quick Actions -->
-    <div class="row">
-      <div class="col-12">
-        <div class="card border-0 shadow-sm">
-          <div class="card-header bg-light border-0">
-            <h5 class="mb-0 fw-bold text-muted">
-              <i class="fas fa-rocket text-primary me-2"></i>Quick Actions
-            </h5>
-          </div>
-          <div class="card-body p-4">
-            <div class="row g-3">
-              <div class="col-md-4">
-                <%= link_to new_resume_path, class: "btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center" do %>
-                  <i class="fas fa-upload me-2"></i>Upload New Resume
-                <% end %>
-              </div>
-              <div class="col-md-4">
-                <%= link_to new_job_description_path, class: "btn btn-outline-secondary btn-lg w-100 d-flex align-items-center justify-content-center" do %>
-                  <i class="fas fa-briefcase me-2"></i>Add Job Description
-                <% end %>
-              </div>
-              <div class="col-md-4">
-                <%= link_to resumes_path, class: "btn btn-outline-info btn-lg w-100 d-flex align-items-center justify-content-center" do %>
-                  <i class="fas fa-list me-2"></i>View All Resumes
-                <% end %>
-              </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+      <div class="card border-0 bg-info text-white h-100 shadow-sm" style="margin: 0 0.5rem;">
+        <div class="card-body text-center" style="padding: 2rem 1.5rem;">
+          <i class="fas fa-briefcase fa-2x mb-3 opacity-75"></i>
+          <div class="display-6 fw-bold"><%= @stats[:total_job_descriptions] %></div>
+          <div class="fs-6 opacity-75">Job Descriptions</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+      <% processing_rate = @stats[:total_resumes] > 0 ? (@stats[:successful_processings].to_f / @stats[:total_resumes] * 100).round(0) : 0 %>
+      <div class="card border-0 bg-warning text-dark h-100 shadow-sm" style="margin: 0 0.5rem;">
+        <div class="card-body text-center" style="padding: 2rem 1.5rem;">
+          <i class="fas fa-chart-line fa-2x mb-3 opacity-75"></i>
+          <div class="display-6 fw-bold"><%= processing_rate %>%</div>
+          <div class="fs-6 opacity-75">Success Rate</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Quick Actions -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm" style="margin: 0 0.5rem;">
+        <div class="card-header bg-light border-0" style="padding: 1.5rem 2rem;">
+          <h5 class="mb-0 fw-bold text-dark">
+            <i class="fas fa-rocket text-primary me-2"></i>Quick Actions
+          </h5>
+        </div>
+        <div class="card-body" style="padding: 2rem;">
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <%= link_to new_resume_path, class: "btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center", style: "padding: 1rem 1.5rem; text-decoration: none;" do %>
+                <i class="fas fa-upload me-2"></i>Upload New Resume
+              <% end %>
+            </div>
+            <div class="col-lg-4">
+              <%= link_to new_job_description_path, class: "btn btn-outline-secondary btn-lg w-100 d-flex align-items-center justify-content-center", style: "padding: 1rem 1.5rem; text-decoration: none;" do %>
+                <i class="fas fa-briefcase me-2"></i>Add Job Description
+              <% end %>
+            </div>
+            <div class="col-lg-4">
+              <%= link_to resumes_path, class: "btn btn-outline-info btn-lg w-100 d-flex align-items-center justify-content-center", style: "padding: 1rem 1.5rem; text-decoration: none;" do %>
+                <i class="fas fa-list me-2"></i>View All Resumes
+              <% end %>
             </div>
           </div>
         </div>
       </div>
     </div>
-
-    <% if @stats[:total_resumes] > 0 %>
+  </div>
+  <% if @stats[:total_resumes] > 0 %>
     <!-- Processing Stats -->
-    <div class="row mt-4">
+    <div class="row">
       <div class="col-12">
-        <div class="card border-0 shadow-sm">
-          <div class="card-header bg-light border-0">
-            <h5 class="mb-0 fw-bold text-muted">
+        <div class="card border-0 shadow-sm" style="margin: 0 0.5rem;">
+          <div class="card-header bg-light border-0" style="padding: 1.5rem 2rem;">
+            <h5 class="mb-0 fw-bold text-dark">
               <i class="fas fa-chart-bar text-success me-2"></i>Processing Analytics
             </h5>
           </div>
-          <div class="card-body">
+          <div class="card-body" style="padding: 2rem;">
             <% 
-              total = @stats[:total_resumes]
-              completed = @stats[:successful_processings]
-              processing = @resumes.where(processing_status: ['pending', 'queued', 'processing']).count rescue 0
-              failed = total - completed - processing
-            %>
-            
-            <div class="row text-center">
-              <div class="col-md-3">
-                <div class="p-3">
-                  <div class="h4 text-success mb-1"><%= completed %></div>
-                  <div class="text-muted">Completed</div>
-                  <small class="text-success"><%= total > 0 ? (completed.to_f / total * 100).round(1) : 0 %>%</small>
+            total = @stats[:total_resumes]
+            completed = @stats[:successful_processings]
+            processing = @resumes.where(processing_status: ['pending', 'queued', 'processing']).count rescue 0
+            failed = total - completed - processing
+          %>
+            <div class="row text-center mb-4">
+              <div class="col-lg-3 col-6" style="margin-bottom: 1.5rem;">
+                <div class="bg-success bg-opacity-10 rounded" style="padding: 1.5rem;">
+                  <h4 class="fw-bold text-success mb-2"><%= completed %></h4>
+                  <div class="text-muted small mb-2">Completed</div>
+                  <small class="badge bg-success"><%= total > 0 ? (completed.to_f / total * 100).round(1) : 0 %>%</small>
                 </div>
               </div>
-              <div class="col-md-3">
-                <div class="p-3">
-                  <div class="h4 text-warning mb-1"><%= processing %></div>
-                  <div class="text-muted">Processing</div>
-                  <small class="text-warning"><%= total > 0 ? (processing.to_f / total * 100).round(1) : 0 %>%</small>
+              <div class="col-lg-3 col-6" style="margin-bottom: 1.5rem;">
+                <div class="bg-warning bg-opacity-10 rounded" style="padding: 1.5rem;">
+                  <h4 class="fw-bold text-warning mb-2"><%= processing %></h4>
+                  <div class="text-muted small mb-2">Processing</div>
+                  <small class="badge bg-warning"><%= total > 0 ? (processing.to_f / total * 100).round(1) : 0 %>%</small>
                 </div>
               </div>
-              <div class="col-md-3">
-                <div class="p-3">
-                  <div class="h4 text-danger mb-1"><%= failed %></div>
-                  <div class="text-muted">Failed</div>
-                  <small class="text-danger"><%= total > 0 ? (failed.to_f / total * 100).round(1) : 0 %>%</small>
+              <div class="col-lg-3 col-6" style="margin-bottom: 1.5rem;">
+                <div class="bg-danger bg-opacity-10 rounded" style="padding: 1.5rem;">
+                  <h4 class="fw-bold text-danger mb-2"><%= failed %></h4>
+                  <div class="text-muted small mb-2">Failed</div>
+                  <small class="badge bg-danger"><%= total > 0 ? (failed.to_f / total * 100).round(1) : 0 %>%</small>
                 </div>
               </div>
-              <div class="col-md-3">
-                <div class="p-3">
-                  <div class="h4 text-primary mb-1"><%= total %></div>
-                  <div class="text-muted">Total</div>
-                  <small class="text-primary">100%</small>
+              <div class="col-lg-3 col-6" style="margin-bottom: 1.5rem;">
+                <div class="bg-primary bg-opacity-10 rounded" style="padding: 1.5rem;">
+                  <h4 class="fw-bold text-primary mb-2"><%= total %></h4>
+                  <div class="text-muted small mb-2">Total</div>
+                  <small class="badge bg-primary">100%</small>
                 </div>
               </div>
             </div>
-
             <!-- Progress Bar -->
-            <div class="progress mt-3" style="height: 10px;">
-              <div class="progress-bar bg-success" style="width: <%= total > 0 ? (completed.to_f / total * 100) : 0 %>%"></div>
-              <div class="progress-bar bg-warning" style="width: <%= total > 0 ? (processing.to_f / total * 100) : 0 %>%"></div>
-              <div class="progress-bar bg-danger" style="width: <%= total > 0 ? (failed.to_f / total * 100) : 0 %>%"></div>
-            </div>
-            
-            <div class="row mt-3">
-              <div class="col-12 text-center">
-                <small class="text-muted">
-                  <span class="badge bg-success me-2">●</span>Completed
-                  <span class="badge bg-warning me-2 ms-3">●</span>Processing
-                  <span class="badge bg-danger me-2 ms-3">●</span>Failed
-                </small>
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-3">
+                <span class="fw-medium text-muted">Overall Progress</span>
+                <span class="fw-medium text-primary"><%= total > 0 ? (completed.to_f / total * 100).round(1) : 0 %>% Complete</span>
               </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-success" style="width: <%= total > 0 ? (completed.to_f / total * 100) : 0 %>%"></div>
+                <div class="progress-bar bg-warning" style="width: <%= total > 0 ? (processing.to_f / total * 100) : 0 %>%"></div>
+                <div class="progress-bar bg-danger" style="width: <%= total > 0 ? (failed.to_f / total * 100) : 0 %>%"></div>
+              </div>
+            </div>
+            <div class="text-center">
+              <span class="badge bg-success me-2">●</span>Completed
+              <span class="badge bg-warning me-2 ms-2">●</span>Processing
+              <span class="badge bg-danger me-2 ms-2">●</span>Failed
             </div>
           </div>
         </div>
       </div>
     </div>
-    <% end %>
-
-  </div>
-</noscript>
+  <% else %>
+    <!-- Empty State -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm" style="margin: 0 0.5rem;">
+          <div class="card-body text-center" style="padding: 3rem 2rem;">
+            <i class="fas fa-rocket fa-3x text-primary mb-4 opacity-50"></i>
+            <h3 class="mb-3">Ready to get started?</h3>
+            <p class="text-muted mb-4">Upload your first resume and let our AI help enhance your career prospects!</p>
+            <%= link_to "Upload Resume", new_resume_path, class: "btn btn-primary btn-lg", style: "padding: 0.75rem 2rem;" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
