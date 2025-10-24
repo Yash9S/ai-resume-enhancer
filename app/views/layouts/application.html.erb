@@ -7,19 +7,29 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-
     <%= yield :head %>
-
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
-
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%# <%= javascript_importmap_tags %> <!-- Commented out due to conflicts -->
+    <!-- SystemJS for microfrontend module loading -->
+    <script src="https://cdn.jsdelivr.net/npm/systemjs@6.14.1/dist/system.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/systemjs@6.14.1/dist/extras/amd.min.js"></script>
+    <!-- ImportMap for microfrontend modules -->
+    <script type="systemjs-importmap">
+      {
+        "imports": {
+          "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.9.3/lib/system/single-spa.min.js",
+          "job-descriptions-widget": "http://localhost:4005/job-descriptions-widget.js"
+        }
+      }
+    </script>
     <%= stylesheet_link_tag "react_components", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "microfrontends", "data-turbo-track": "reload" %>
     <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
-    <%= javascript_include_tag "components", "data-turbo-track": "reload" %>
-    
+    <%# <%= javascript_include_tag "components", "data-turbo-track": "reload" %> <!-- Commented out to avoid conflicts -->
     <script>
       // Toastr configuration
       toastr.options = {
@@ -41,7 +51,6 @@
       }
     </script>
   </head>
-
   <body>
     <!-- Navigation -->
     <nav class="navbar">
@@ -50,7 +59,6 @@
           <div class="navbar-brand">
             <%= link_to "AI Resume Parser", root_path, style: "color: white; text-decoration: none;" %>
           </div>
-          
           <% if user_signed_in? %>
             <div class="navbar-menu">
               <% if admin_subdomain? %>
@@ -71,7 +79,6 @@
             </div>
           <% end %>
         </div>
-        
         <div class="navbar-right">
           <% if user_signed_in? %>
             <span class="navbar-profile">👋 <%= current_user.email %></span>
@@ -83,7 +90,6 @@
         </div>
       </div>
     </nav>
-
     <!-- Toastr Flash Messages -->
     <% if flash.any? %>
       <script>
@@ -93,12 +99,10 @@
         <% end %>
       </script>
     <% end %>
-
     <!-- Main Content -->
     <main class="container mt-4">
       <%= yield %>
     </main>
-
     <!-- Footer -->
     <footer class="bg-light mt-5 py-3">
       <div class="container text-center">

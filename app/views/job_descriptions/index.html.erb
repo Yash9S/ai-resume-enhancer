@@ -1,80 +1,58 @@
-<% content_for :title, "Job Descriptions" %>
+<h1>Job Descriptions</h1>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h2>Job Descriptions</h2>
-  <%= link_to "Add New Job Description", new_job_description_path, class: "btn btn-primary" %>
-</div>
-
-<% if @job_descriptions.any? %>
-  <div class="row">
-    <% @job_descriptions.each do |job_description| %>
-      <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
-          <div class="card-body">
-            <h5 class="card-title">
-              <%= link_to job_description.title, job_description, class: "text-decoration-none" %>
-            </h5>
-            
-            <h6 class="card-subtitle mb-2 text-muted">
-              <%= job_description.company %>
-            </h6>
-            
-            <p class="card-text">
-              <small class="text-muted">
-                <i class="fas fa-map-marker-alt"></i> <%= job_description.location %><br>
-                <i class="fas fa-briefcase"></i> <%= job_description.employment_type&.humanize %><br>
-                <% if job_description.experience_level.present? %>
-                  <i class="fas fa-user-graduate"></i> <%= job_description.experience_level.humanize %> Level<br>
-                <% end %>
-                <i class="fas fa-clock"></i> <%= job_description.created_at.strftime("%B %d, %Y") %>
-              </small>
-            </p>
-            
-            <% if job_description.description.present? %>
-              <p class="card-text">
-                <%= truncate(strip_tags(job_description.description), length: 100) %>
-              </p>
-            <% end %>
-            
-            <% if job_description.required_skills.present? %>
-              <div class="mb-2">
-                <small class="text-muted">Key Skills:</small><br>
-                <% job_description.required_skills.split(',').first(3).each do |skill| %>
-                  <span class="badge bg-light text-dark me-1"><%= skill.strip %></span>
-                <% end %>
-                <% if job_description.required_skills.split(',').length > 3 %>
-                  <span class="badge bg-secondary">+<%= job_description.required_skills.split(',').length - 3 %> more</span>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
+<div class="row">
+  <% @job_descriptions.each do |job_description| %>
+    <div class="col-md-6 col-lg-4 mb-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title text-primary"><%= job_description.title %></h5>
+          <h6 class="card-subtitle mb-2 text-muted"><%= job_description.company %></h6>
           
-          <div class="card-footer bg-transparent">
-            <div class="btn-group w-100" role="group">
-              <%= link_to "View", job_description, class: "btn btn-outline-primary btn-sm" %>
-              <%= link_to "Edit", edit_job_description_path(job_description), class: "btn btn-outline-secondary btn-sm" %>
-              <%= link_to "Delete", job_description, method: :delete, 
-                  confirm: "Are you sure?", class: "btn btn-outline-danger btn-sm" %>
+          <p class="card-text">
+            <small class="text-muted">
+              <i class="fas fa-map-marker-alt"></i> <%= job_description.location || 'Remote' %><br>
+              <i class="fas fa-briefcase"></i> <%= job_description.employment_type || 'Full time' %><br>
+              <i class="fas fa-layer-group"></i> <%= job_description.experience_level || 'Mid Level' %><br>
+              <i class="fas fa-calendar"></i> <%= job_description.created_at.strftime("%B %d, %Y") %>
+            </small>
+          </p>
+          
+          <p class="card-text">
+            <% if job_description.description.present? %>
+              <%= job_description.description.length > 100 ? job_description.description[0, 100] + '...' : job_description.description %>
+            <% else %>
+              No description specified
+            <% end %>
+          </p>
+          
+          <% if job_description.required_skills.present? %>
+            <div class="mb-3">
+              <strong>Key Skills:</strong><br>
+              <% job_description.required_skills.split(',').first(3).each do |skill| %>
+                <span class="badge bg-secondary me-1"><%= skill.strip.upcase %></span>
+              <% end %>
+              <% if job_description.required_skills.split(',').length > 3 %>
+                <span class="badge bg-dark">+<%= job_description.required_skills.split(',').length - 3 %> MORE</span>
+              <% end %>
             </div>
-          </div>
+          <% end %>
+        </div>
+        
+        <div class="card-footer bg-transparent">
+          <%= link_to "View", job_description_path(job_description), class: "btn btn-primary btn-sm" %>
+          <%= link_to "Edit", edit_job_description_path(job_description), class: "btn btn-outline-primary btn-sm" %>
+          <%= link_to "Delete", job_description_path(job_description), method: :delete, 
+                      confirm: "Are you sure?", class: "btn btn-outline-danger btn-sm" %>
         </div>
       </div>
-    <% end %>
-  </div>
-
-  <!-- Pagination -->
-  <% if respond_to?(:paginate) %>
-    <div class="d-flex justify-content-center mt-4">
-      <%= paginate @job_descriptions %>
     </div>
   <% end %>
-<% else %>
-  <div class="text-center py-5">
-    <div class="mb-3">
-      <i class="fas fa-briefcase fa-3x text-muted"></i>
-    </div>
-    <h4>No job descriptions saved yet</h4>
-    <p class="text-muted">Add job descriptions to create tailored resumes for specific positions.</p>
+</div>
+
+<% if @job_descriptions.empty? %>
+  <div class="text-center mt-5">
+    <h4 class="text-muted">No job descriptions yet</h4>
+    <p class="text-muted">Start by adding your first job description.</p>
     <%= link_to "Add Job Description", new_job_description_path, class: "btn btn-primary" %>
   </div>
 <% end %>
