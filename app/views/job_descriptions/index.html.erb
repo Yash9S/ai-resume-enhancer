@@ -1,7 +1,7 @@
 <!-- Microfrontend Container -->
 <div id="job-descriptions-microfrontend" 
      data-job-descriptions='<%= @job_descriptions.to_json.html_safe %>'
-     data-user='<%= { email: current_user.email, role: current_user.role || "user" }.to_json.html_safe %>'>
+     data-user='<%= (@current_user || { email: current_user&.email, role: current_user&.role || "user" }).to_json.html_safe %>'>
   <!-- Loading State -->
   <div class="text-center py-5">
     <div class="spinner-border text-primary mb-3" role="status">
@@ -79,10 +79,10 @@
     </div>
   <% end %>
 </div>
-<!-- Microfrontend Loader Script -->
+<!-- Single SPA Microfrontend Loader -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔄 Starting Job Descriptions Microfrontend...');
+    console.log('🔄 Starting Job Descriptions Microfrontend with Single SPA...');
 
     const container = document.getElementById('job-descriptions-microfrontend');
     const fallback = document.getElementById('job-descriptions-fallback');
@@ -118,17 +118,39 @@
       fallback.style.display = 'block';
     }, 10000); // 10 second timeout
 
-    // Try to load the microfrontend using SystemJS
+    // Load the microfrontend using SystemJS
     if (typeof System !== 'undefined') {
-      console.log('🔍 SystemJS available, importing job-descriptions-widget...');
+      console.log('🔍 SystemJS available, importing microfrontend...');
 
-      System.import('job-descriptions-widget')
+      System.import('job-descriptions-microfrontend')
         .then((microfrontend) => {
           console.log('✅ Microfrontend module loaded:', microfrontend);
+          console.log('🔍 Microfrontend keys:', Object.keys(microfrontend));
+          console.log('🔍 Microfrontend default:', microfrontend.default);
           clearTimeout(fallbackTimer);
 
-          // Get the lifecycle functions
-          const { bootstrap, mount, unmount } = microfrontend.default || microfrontend;
+                  // Get the lifecycle functions - try different ways to access them
+                  let bootstrap, mount, unmount;
+
+                  if (microfrontend.default && microfrontend.default.bootstrap) {
+                    // ES6 module style
+                    ({ bootstrap, mount, unmount } = microfrontend.default);
+                  } else if (microfrontend.bootstrap) {
+                    // Direct export style
+                    ({ bootstrap, mount, unmount } = microfrontend);
+                  } else if (window.jobDescriptionsMicrofrontend) {
+                    // Global window object style
+                    console.log('🔍 Trying global window object access...');
+                    ({ bootstrap, mount, unmount } = window.jobDescriptionsMicrofrontend);
+                  } else {
+                    // SystemJS style - check if it's a SystemJS module
+                    console.log('🔍 Trying SystemJS style access...');
+                    bootstrap = microfrontend.bootstrap;
+                    mount = microfrontend.mount;
+                    unmount = microfrontend.unmount;
+                  }
+
+          console.log('🔍 Lifecycle functions found:', { bootstrap: !!bootstrap, mount: !!mount, unmount: !!unmount });
 
           if (bootstrap && mount && unmount) {
             // Register with Single SPA

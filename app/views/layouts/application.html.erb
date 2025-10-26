@@ -13,23 +13,20 @@
     <link rel="apple-touch-icon" href="/icon.png">
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%# <%= javascript_importmap_tags %> <!-- Commented out due to conflicts -->
     <!-- SystemJS for microfrontend module loading -->
     <script src="https://cdn.jsdelivr.net/npm/systemjs@6.14.1/dist/system.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/systemjs@6.14.1/dist/extras/amd.min.js"></script>
-    <!-- React and React Router from CDN -->
+    <!-- React from CDN for global access -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-router-dom@6.8.1/dist/umd/react-router-dom.development.js"></script>
-    <!-- ImportMap for microfrontend modules -->
+    <!-- SystemJS ImportMap for microfrontend modules -->
     <script type="systemjs-importmap">
       {
         "imports": {
           "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.9.3/lib/system/single-spa.min.js",
           "react": "https://unpkg.com/react@18/umd/react.development.js",
           "react-dom": "https://unpkg.com/react-dom@18/umd/react-dom.development.js",
-          "react-router-dom": "https://unpkg.com/react-router-dom@6.8.1/dist/umd/react-router-dom.development.js",
-          "job-descriptions-widget": "http://localhost:4005/job-descriptions-widget.js"
+          "job-descriptions-microfrontend": "http://localhost:4005/job-descriptions-microfrontend.js"
         }
       }
     </script>
