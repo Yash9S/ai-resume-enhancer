@@ -58,45 +58,47 @@ const Dashboard = (props) => {
 
   if (loading) {
     return (
-      React.createElement('div', { className: 'loading-spinner' },
-        React.createElement('div', { className: 'spinner' }),
-        React.createElement('p', null, 'Loading dashboard...')
-      )
+      <div className="loading-spinner">
+        <div className="spinner" />
+        <p>Loading dashboard...</p>
+      </div>
     );
   }
 
   return (
-      React.createElement('div', { className: 'dashboard' },
-        React.createElement('div', { className: 'hero-section' },
-          React.createElement('h1', null, 'Welcome to AI Resume Parser'),
-          React.createElement('p', null, 'Enhance your career with AI-powered resume analysis')
-        ),
-        React.createElement('div', { className: 'stats-grid' },
-          React.createElement('div', { className: 'stat-card primary' },
-            React.createElement('h3', null, stats.total_resumes),
-            React.createElement('p', null, 'Total Resumes')
-          ),
-          React.createElement('div', { className: 'stat-card success' },
-            React.createElement('h3', null, stats.processed_resumes),
-            React.createElement('p', null, 'Processed Resumes')
-          ),
-          React.createElement('div', { className: 'stat-card info' },
-            React.createElement('h3', null, stats.total_job_descriptions),
-            React.createElement('p', null, 'Job Descriptions')
-          ),
-          React.createElement('div', { className: 'stat-card warning' },
-            React.createElement('h3', null, stats.successful_processings),
-            React.createElement('p', null, 'Successful Processings')
-          )
-        ),
-        React.createElement('div', { className: 'quick-actions' },
-          React.createElement('h2', null, '🚀 Quick Actions'),
-          React.createElement('div', { className: 'action-buttons' },
-            React.createElement('a', { href: '/resumes/new', className: 'btn btn-primary' }, '📄 Upload New Resume'),
-            React.createElement('a', { href: '/job_descriptions/new', className: 'btn btn-secondary' }, '💼 Add Job Description'),
-            React.createElement('a', { href: '/resumes', className: 'btn btn-outline' }, '📊 View All Resumes')
-          )
-        )
-      )
-    );
+    <div className="dashboard">
+      <div className="hero-section">
+        <h1>Welcome to AI Resume Parser</h1>
+        <p>Enhance your career with AI-powered resume analysis</p>
+      </div>
+      
+      <div className="stats-grid">
+        <div className="stat-card primary">
+          <h3>{stats.total_resumes}</h3>
+          <p>Total Resumes</p>
+        </div>
+        <div className="stat-card success">
+          <h3>{stats.processed_resumes}</h3>
+          <p>Processed Resumes</p>
+        </div>
+        <div className="stat-card info">
+          <h3>{stats.total_job_descriptions}</h3>
+          <p>Job Descriptions</p>
+        </div>
+        <div className="stat-card warning">
+          <h3>{stats.successful_processings}</h3>
+          <p>Successful Processings</p>
+        </div>
+      </div>
+      
+      <div className="quick-actions">
+        <h2>🚀 Quick Actions</h2>
+        <div className="action-buttons">
+          <a href="/resumes/new" className="btn btn-primary">📄 Upload New Resume</a>
+          <a href="/job_descriptions/new" className="btn btn-secondary">💼 Add Job Description</a>
+          <a href="/resumes" className="btn btn-outline">📊 View All Resumes</a>
+        </div>
+      </div>
+    </div>
+  );
 };
