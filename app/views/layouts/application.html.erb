@@ -18,235 +18,147 @@
     <script src="https://cdn.jsdelivr.net/npm/systemjs@6.14.1/dist/extras/amd.min.js"></script>
     <!-- jQuery for legacy functionality -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- SIMPLIFIED React Loading - No SystemJS conflicts -->
-    <script>
-      console.log('🔄 Loading React via JSPM (no UMD conflicts)...');
-
-      // Global tracker
-      window.reactLoadingStatus = {
-        react: false,
-        reactDOM: false,
-        errors: []
-      };
+    <!-- React will be loaded via SystemJS importmap -->
+    <!-- Toastr for notifications -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <!-- SystemJS ImportMap for microfrontend modules -->
+    <script type="systemjs-importmap">
+      {
+        "imports": {
+          "react": "https://unpkg.com/react@18/umd/react.development.js",
+          "react-dom": "https://unpkg.com/react-dom@18/umd/react-dom.development.js",
+          "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.9.3/lib/system/single-spa.min.js",
+          "jquery": "https://code.jquery.com/jquery-3.6.0.min.js",
+          "job-descriptions-microfrontend": "http://localhost:4005/job-descriptions-microfrontend.js"
+        }
+      }
     </script>
-    <!-- Use non-UMD builds to avoid SystemJS conflicts -->
-    <script type="module">
-      import React from 'https://esm.sh/react@18';
-      import ReactDOM from 'https://esm.sh/react-dom@18';
-
-      // Expose globally
-      window.React = React;
-      window.ReactDOM = ReactDOM;
-      window.reactLoadingStatus.react = true;
-      window.reactLoadingStatus.reactDOM = true;
-
-      console.log('✅ React loaded via ESM:', React.version);
-      console.log('✅ ReactDOM loaded via ESM');
-    </script>
-    <!-- Emergency fallback for older browsers -->
+    <%# Temporarily disabled - causing 500 error %>
+    <%# <%= stylesheet_link_tag "react_components", "data-turbo-track": "reload" %>
+    <%# Temporarily disable microfrontends CSS causing 500 error %>
+    <%# <%= stylesheet_link_tag "microfrontends", "data-turbo-track": "reload" %>
+    <%# Temporarily disable legacy asset pipeline JavaScript to avoid JSX conflicts %>
+    <%# <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
+    <%# <%= javascript_include_tag "components", "data-turbo-track": "reload" %> <!-- Commented out to avoid conflicts -->
     <script>
-      setTimeout(() => {
-        if (!window.React || !window.ReactDOM) {
-          console.warn('⚠️ ESM failed, using emergency inline React...');
-
-          // Create minimal React implementation
-          window.React = {
-            createElement: function(type, props, ...children) {
-              return { type, props: props || {}, children: children.flat() };
-            },
-            useState: function(initial) {
-              return [initial, function(newValue) {
-                console.log('State update:', newValue);
-              }];
-            },
-            useEffect: function(effect, deps) {
-              if (typeof effect === 'function') {
-                setTimeout(effect, 0);
-              }
-            },
-            version: '18.0.0-inline'
+      // Toastr configuration
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof toastr !== 'undefined') {
+          toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
           };
 
-          window.ReactDOM = {
-            createRoot: function(container) {
-              return {
-                render: function(element) {
-                  if (container) {
-                    container.innerHTML = `
-                      <div class="microfrontend-content">
-                        <div class="alert alert-info">
-                          <h4>🚀 Emergency Mode Active</h4>
-                          <p>Microfrontend loaded successfully with inline React.</p>
-                          <p><strong>Status:</strong> React ${window.React.version} ready!</p>
-                        </div>
-                      </div>
-                    `;
-                  }
-                },
-                unmount: function() {
-                  if (container) {
-                    container.innerHTML = '';
-                  }
-                }
-              };
+          // Global notification functions
+          window.showNotification = function(type, message, title = null, options = {}) {
+            const toastrOptions = Object.assign({
+              closeButton: true,
+              progressBar: true,
+              positionClass: 'toast-top-right',
+              timeOut: 5000
+            }, options);
+
+            toastr.options = toastrOptions;
+
+            switch(type) {
+              case 'success':
+                toastr.success(message, title);
+                break;
+              case 'error':
+                toastr.error(message, title);
+                break;
+              case 'info':
+                toastr.info(message, title);
+                break;
+              case 'warning':
+                toastr.warning(message, title);
+                break;
+              default:
+                toastr.info(message, title);
             }
           };
 
-          window.reactLoadingStatus.react = true;
-          window.reactLoadingStatus.reactDOM = true;
-          console.log('✅ Emergency React ready!');
+          window.toast = {
+            success: (message, title, options) => showNotification('success', message, title, options),
+            error: (message, title, options) => showNotification('error', message, title, options),
+            info: (message, title, options) => showNotification('info', message, title, options),
+            warning: (message, title, options) => showNotification('warning', message, title, options)
+          };
         }
-      }, 1000);
+      });
     </script>
-    console.log('✅ ReactDOM loaded successfully from cdnjs fallback', typeof window.ReactDOM);
-    };
-    script.onerror = () => {
-    window.reactLoadingStatus.errors.push('ReactDOM failed to load from both CDNs');
-    console.error('❌ ReactDOM failed to load from both CDNs');
-    };
-    document.head.appendChild(script);
-    }
-    }
-  </script>
-  <!-- Toastr for notifications -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-  <!-- SystemJS ImportMap for microfrontend modules -->
-  <script type="systemjs-importmap">
-    {
-      "imports": {
-        "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.9.3/lib/system/single-spa.min.js",
-        "react": "https://unpkg.com/react@18/umd/react.development.js",
-        "react-dom": "https://unpkg.com/react-dom@18/umd/react-dom.development.js",
-        "jquery": "https://code.jquery.com/jquery-3.6.0.min.js",
-        "job-descriptions-microfrontend": "http://localhost:4005/job-descriptions-microfrontend.js"
-      }
-    }
-  </script>
-  <%= stylesheet_link_tag "react_components", "data-turbo-track": "reload" %>
-  <%# Temporarily disable microfrontends CSS causing 500 error %>
-  <%# <%= stylesheet_link_tag "microfrontends", "data-turbo-track": "reload" %>
-  <%# Temporarily disable legacy asset pipeline JavaScript to avoid JSX conflicts %>
-  <%# <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
-  <%# <%= javascript_include_tag "components", "data-turbo-track": "reload" %> <!-- Commented out to avoid conflicts -->
-  <script>
-    // Toastr configuration
-    document.addEventListener('DOMContentLoaded', function() {
-      if (typeof toastr !== 'undefined') {
-        toastr.options = {
-          "closeButton": true,
-          "debug": false,
-          "newestOnTop": true,
-          "progressBar": true,
-          "positionClass": "toast-top-right",
-          "preventDuplicates": false,
-          "onclick": null,
-          "showDuration": "300",
-          "hideDuration": "1000",
-          "timeOut": "5000",
-          "extendedTimeOut": "1000",
-          "showEasing": "swing",
-          "hideEasing": "linear",
-          "showMethod": "fadeIn",
-          "hideMethod": "fadeOut"
-        };
-
-        // Global notification functions
-        window.showNotification = function(type, message, title = null, options = {}) {
-          const toastrOptions = Object.assign({
-            closeButton: true,
-            progressBar: true,
-            positionClass: 'toast-top-right',
-            timeOut: 5000
-          }, options);
-
-          toastr.options = toastrOptions;
-
-          switch(type) {
-            case 'success':
-              toastr.success(message, title);
-              break;
-            case 'error':
-              toastr.error(message, title);
-              break;
-            case 'info':
-              toastr.info(message, title);
-              break;
-            case 'warning':
-              toastr.warning(message, title);
-              break;
-            default:
-              toastr.info(message, title);
-          }
-        };
-
-        window.toast = {
-          success: (message, title, options) => showNotification('success', message, title, options),
-          error: (message, title, options) => showNotification('error', message, title, options),
-          info: (message, title, options) => showNotification('info', message, title, options),
-          warning: (message, title, options) => showNotification('warning', message, title, options)
-        };
-      }
-    });
-  </script>
-</head>
-<body>
-  <!-- Navigation -->
-  <nav class="navbar">
-    <div class="navbar-container">
-      <div class="navbar-left">
-        <div class="navbar-brand">
-          <%= link_to "AI Resume Parser", root_path, style: "color: white; text-decoration: none;" %>
-        </div>
-        <% if user_signed_in? %>
-          <div class="navbar-menu">
-            <% if admin_subdomain? %>
-              <!-- Admin subdomain navigation -->
-              <% if current_user.admin? %>
-                <%= link_to "Admin Dashboard", admin_dashboard_index_path, class: "navbar-item" %>
-                <%= link_to "Tenants", admin_tenants_path, class: "navbar-item" %>
-                <%= link_to "Users", admin_users_path, class: "navbar-item" %>
-              <% else %>
-                <span class="navbar-item text-muted">Access Denied</span>
-              <% end %>
-            <% else %>
-              <!-- Regular tenant navigation -->
-              <%= link_to "Dashboard", root_path, class: "navbar-item" %>
-              <%= link_to "Resumes", resumes_path, class: "navbar-item" %>
-              <%= link_to "Job Descriptions", job_descriptions_path, class: "navbar-item" %>
-            <% end %>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="navbar-container">
+        <div class="navbar-left">
+          <div class="navbar-brand">
+            <%= link_to "AI Resume Parser", root_path, style: "color: white; text-decoration: none;" %>
           </div>
-        <% end %>
+          <% if user_signed_in? %>
+            <div class="navbar-menu">
+              <% if admin_subdomain? %>
+                <!-- Admin subdomain navigation -->
+                <% if current_user.admin? %>
+                  <%= link_to "Admin Dashboard", admin_dashboard_index_path, class: "navbar-item" %>
+                  <%= link_to "Tenants", admin_tenants_path, class: "navbar-item" %>
+                  <%= link_to "Users", admin_users_path, class: "navbar-item" %>
+                <% else %>
+                  <span class="navbar-item text-muted">Access Denied</span>
+                <% end %>
+              <% else %>
+                <!-- Regular tenant navigation -->
+                <%= link_to "Dashboard", root_path, class: "navbar-item" %>
+                <%= link_to "Resumes", resumes_path, class: "navbar-item" %>
+                <%= link_to "Job Descriptions", job_descriptions_path, class: "navbar-item" %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+        <div class="navbar-right">
+          <% if user_signed_in? %>
+            <span class="navbar-profile">👋 <%= current_user.email %></span>
+            <%= link_to "Sign Out", destroy_user_session_path, method: :delete, class: "navbar-item btn-signout" %>
+          <% else %>
+            <%= link_to "Sign In", new_user_session_path, class: "navbar-item" %>
+            <%= link_to "Sign Up", new_user_registration_path, class: "navbar-item" %>
+          <% end %>
+        </div>
       </div>
-      <div class="navbar-right">
-        <% if user_signed_in? %>
-          <span class="navbar-profile">👋 <%= current_user.email %></span>
-          <%= link_to "Sign Out", destroy_user_session_path, method: :delete, class: "navbar-item btn-signout" %>
-        <% else %>
-          <%= link_to "Sign In", new_user_session_path, class: "navbar-item" %>
-          <%= link_to "Sign Up", new_user_registration_path, class: "navbar-item" %>
+    </nav>
+    <!-- Toastr Flash Messages -->
+    <% if flash.any? %>
+      <script>
+        <% flash.each do |type, message| %>
+          <% toastr_type = type == 'notice' ? 'success' : (type == 'alert' ? 'error' : type) %>
+          toastr.<%= toastr_type %>('<%= j(message) %>');
         <% end %>
+      </script>
+    <% end %>
+    <!-- Main Content -->
+    <main class="container mt-4">
+      <%= yield %>
+    </main>
+    <!-- Footer -->
+    <footer class="bg-light mt-5 py-3">
+      <div class="container text-center">
+        <p>&copy; 2025 AI Resume Parser. All rights reserved.</p>
       </div>
-    </div>
-  </nav>
-  <!-- Toastr Flash Messages -->
-  <% if flash.any? %>
-    <script>
-      <% flash.each do |type, message| %>
-        <% toastr_type = type == 'notice' ? 'success' : (type == 'alert' ? 'error' : type) %>
-        toastr.<%= toastr_type %>('<%= j(message) %>');
-      <% end %>
-    </script>
-  <% end %>
-  <!-- Main Content -->
-  <main class="container mt-4">
-    <%= yield %>
-  </main>
-  <!-- Footer -->
-  <footer class="bg-light mt-5 py-3">
-    <div class="container text-center">
-      <p>&copy; 2025 AI Resume Parser. All rights reserved.</p>
-    </div>
-  </footer>
-</body>
+    </footer>
+  </body>
 </html>

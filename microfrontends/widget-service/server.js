@@ -21,7 +21,6 @@ app.get('/job-descriptions-microfrontend.js', (req, res) => {
     try {
       babel = require('@babel/core');
     } catch (e) {
-      console.log('Babel not available, using fallback...');
       return serveFallback(res);
     }
 
@@ -29,7 +28,6 @@ app.get('/job-descriptions-microfrontend.js', (req, res) => {
     const jsxFilePath = path.join(__dirname, 'src', 'job-descriptions-microfrontend.jsx');
     
     if (!fs.existsSync(jsxFilePath)) {
-      console.error('JSX file not found');
       return serveFallback(res);
     }
     
@@ -69,22 +67,17 @@ System.register([], function() {
   
   return {
     execute: function() {
-      this.bootstrap = bootstrap;
-      this.mount = mount;
-      this.unmount = unmount;
+      // Export lifecycle functions as default export
       this.default = { bootstrap, mount, unmount };
+      console.log('✅ Job Descriptions Microfrontend registered with SystemJS');
     }
   };
 });
-
-console.log('✅ Job Descriptions Microfrontend registered with SystemJS');
 `;
 
-    console.log('📤 Serving transpiled JSX microfrontend, length:', wrappedMicrofrontend.length);
     res.send(wrappedMicrofrontend);
     
   } catch (error) {
-    console.error('❌ Error transpiling JSX:', error);
     serveFallback(res);
   }
 });
@@ -145,15 +138,11 @@ System.register([], function() {
   
   return {
     execute: function() {
-      this.bootstrap = bootstrap;
-      this.mount = mount;
-      this.unmount = unmount;
+      // Export lifecycle functions as default export
       this.default = { bootstrap, mount, unmount };
     }
   };
 });
-
-console.log('✅ Fallback microfrontend loaded');
 `;
   
   res.send(fallbackMicrofrontend);

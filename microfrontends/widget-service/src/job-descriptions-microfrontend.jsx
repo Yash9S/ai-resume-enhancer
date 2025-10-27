@@ -1,43 +1,8 @@
 // Job Descriptions Microfrontend - Single SPA + React
-console.log('🚀 Loading Job Descriptions Microfrontend...');
 
-// Check React availability with fallback handling
-if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
-  console.warn('⚠️ React/ReactDOM not fully available, using emergency mode...');
-  
-  // Create emergency React if needed
-  if (typeof React === 'undefined') {
-    window.React = {
-      createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat() }),
-      useState: (initial) => [initial, () => {}],
-      useEffect: () => {},
-      version: 'emergency'
-    };
-  }
-  
-  if (typeof ReactDOM === 'undefined') {
-    window.ReactDOM = {
-      createRoot: (container) => ({
-        render: (element) => {
-          container.innerHTML = '<div class="alert alert-success">Emergency microfrontend loaded!</div>';
-        },
-        unmount: () => {}
-      })
-    };
-  }
-}
-
-console.log('✅ React environment ready:', React.version);
-
-// Access React from global scope with safety checks
-const useState = React.useState || (() => [null, () => {}]);
-const useEffect = React.useEffect || (() => {});
-const createRoot = ReactDOM.createRoot || ((container) => ({
-  render: (element) => {
-    container.innerHTML = '<div class="alert alert-info">Basic React fallback active</div>';
-  },
-  unmount: () => {}
-}));
+// Access React from global scope
+const { useState, useEffect } = React;
+const { createRoot } = ReactDOM;
 
 // Main Job Descriptions Component
 const JobDescriptionsMicrofrontend = ({ jobDescriptions = [], user = {} }) => {
@@ -182,12 +147,10 @@ const EmptyState = ({ onAddNew }) => (
 let mountedRoot = null;
 
 function bootstrap(props) {
-  console.log('📦 Bootstrap Job Descriptions Microfrontend', props);
   return Promise.resolve();
 }
 
 function mount(props) {
-  console.log('🔧 Mount Job Descriptions Microfrontend', props);
   
   const container = props.domElement;
   if (!container) {
@@ -208,8 +171,6 @@ function mount(props) {
 }
 
 function unmount(props) {
-  console.log('🗑️ Unmount Job Descriptions Microfrontend');
-  
   if (mountedRoot) {
     mountedRoot.unmount();
     mountedRoot = null;
