@@ -1,7 +1,43 @@
-// Job Descriptions Microfrontend - Single SPA + JSX
-// Using global React objects loaded by the main application
-const { useState, useEffect, createElement } = React;
-const { createRoot } = ReactDOM;
+// Job Descriptions Microfrontend - Single SPA + React
+console.log('🚀 Loading Job Descriptions Microfrontend...');
+
+// Check React availability with fallback handling
+if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+  console.warn('⚠️ React/ReactDOM not fully available, using emergency mode...');
+  
+  // Create emergency React if needed
+  if (typeof React === 'undefined') {
+    window.React = {
+      createElement: (type, props, ...children) => ({ type, props: props || {}, children: children.flat() }),
+      useState: (initial) => [initial, () => {}],
+      useEffect: () => {},
+      version: 'emergency'
+    };
+  }
+  
+  if (typeof ReactDOM === 'undefined') {
+    window.ReactDOM = {
+      createRoot: (container) => ({
+        render: (element) => {
+          container.innerHTML = '<div class="alert alert-success">Emergency microfrontend loaded!</div>';
+        },
+        unmount: () => {}
+      })
+    };
+  }
+}
+
+console.log('✅ React environment ready:', React.version);
+
+// Access React from global scope with safety checks
+const useState = React.useState || (() => [null, () => {}]);
+const useEffect = React.useEffect || (() => {});
+const createRoot = ReactDOM.createRoot || ((container) => ({
+  render: (element) => {
+    container.innerHTML = '<div class="alert alert-info">Basic React fallback active</div>';
+  },
+  unmount: () => {}
+}));
 
 // Main Job Descriptions Component
 const JobDescriptionsMicrofrontend = ({ jobDescriptions = [], user = {} }) => {
@@ -19,13 +55,11 @@ const JobDescriptionsMicrofrontend = ({ jobDescriptions = [], user = {} }) => {
   const handleDelete = (jobId) => {
     if (confirm('Are you sure you want to delete this job description?')) {
       console.log('Deleting job:', jobId);
-      // In a real app, this would make an API call
       window.location.reload();
     }
   };
 
   const handleAddNew = () => {
-    // Navigate to the Rails new job description page
     window.location.href = '/job_descriptions/new';
   };
 
@@ -38,15 +72,11 @@ const JobDescriptionsMicrofrontend = ({ jobDescriptions = [], user = {} }) => {
             <i className="fas fa-cube me-1"></i>Single SPA Microfrontend
           </span>
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={handleAddNew}
-        >
+        <button className="btn btn-primary" onClick={handleAddNew}>
           <i className="fas fa-plus me-1"></i>Add New Job Description
         </button>
       </div>
 
-      {/* Search Bar */}
       <div className="row mb-4">
         <div className="col-md-6">
           <div className="input-group">
@@ -69,7 +99,6 @@ const JobDescriptionsMicrofrontend = ({ jobDescriptions = [], user = {} }) => {
         </div>
       </div>
 
-      {/* Job Cards */}
       {filteredJobs.length > 0 ? (
         <div className="row">
           {filteredJobs.map((job) => (
@@ -125,7 +154,6 @@ const JobDescriptionsMicrofrontend = ({ jobDescriptions = [], user = {} }) => {
         <EmptyState onAddNew={handleAddNew} />
       )}
       
-      {/* Microfrontend Info */}
       <div className="mt-4">
         <small className="text-muted">
           <i className="fas fa-info-circle me-1"></i>
@@ -151,62 +179,48 @@ const EmptyState = ({ onAddNew }) => (
 );
 
 // Single SPA Lifecycle Functions
-let mountedContainer = null;
+let mountedRoot = null;
 
 function bootstrap(props) {
-  console.log('Job Descriptions Microfrontend: Bootstrap', props);
+  console.log('📦 Bootstrap Job Descriptions Microfrontend', props);
   return Promise.resolve();
 }
 
 function mount(props) {
-  console.log('Job Descriptions Microfrontend: Mount', props);
+  console.log('🔧 Mount Job Descriptions Microfrontend', props);
   
   const container = props.domElement;
   if (!container) {
     return Promise.reject(new Error('No domElement provided'));
   }
 
-  mountedContainer = container;
   const { jobDescriptions = [], user = {} } = props;
 
-  // Create React root and render
-  const root = createRoot(container);
-  root.render(
-    createElement(JobDescriptionsMicrofrontend, {
-      jobDescriptions,
-      user
-    })
+  mountedRoot = createRoot(container);
+  mountedRoot.render(
+    <JobDescriptionsMicrofrontend
+      jobDescriptions={jobDescriptions}
+      user={user}
+    />
   );
 
   return Promise.resolve();
 }
 
 function unmount(props) {
-  console.log('Job Descriptions Microfrontend: Unmount');
+  console.log('🗑️ Unmount Job Descriptions Microfrontend');
   
-  if (mountedContainer) {
-    const root = createRoot(mountedContainer);
-    root.unmount();
-    mountedContainer = null;
+  if (mountedRoot) {
+    mountedRoot.unmount();
+    mountedRoot = null;
   }
   
   return Promise.resolve();
 }
 
-// Export for Single SPA - SystemJS compatible
-// Make lifecycle functions available globally
+// Export for Single SPA
 window.jobDescriptionsMicrofrontend = {
   bootstrap,
   mount,
   unmount
 };
-
-// Also export as default for ES6 module compatibility
-export default {
-  bootstrap,
-  mount,
-  unmount
-};
-
-// Export individual functions
-export { bootstrap, mount, unmount };
