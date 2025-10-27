@@ -6,7 +6,6 @@
       <%= link_to "+ New Tenant", new_admin_tenant_path, class: "btn btn-primary" %>
     </div>
   </div>
-
   <!-- Search -->
   <div class="search-section">
     <%= form_with url: admin_tenants_path, method: :get, local: true, class: "search-form" do |form| %>
@@ -14,7 +13,6 @@
       <%= form.submit "Search", class: "btn btn-outline" %>
     <% end %>
   </div>
-
   <!-- Tenants Table -->
   <div class="tenants-table">
     <table class="table">
@@ -35,7 +33,8 @@
             <td>
               <strong><%= tenant.name %></strong>
               <% if tenant.description.present? %>
-                <br><small class="text-muted"><%= truncate(tenant.description, length: 50) %></small>
+                <br>
+                <small class="text-muted"><%= truncate(tenant.description, length: 50) %></small>
               <% end %>
             </td>
             <td>
@@ -52,9 +51,9 @@
               </span>
               <div class="mt-1">
                 <% if tenant.status == 'active' %>
-                  <%= button_to "⏸️ Pause", pause_admin_tenant_path(tenant), method: :patch, class: "btn btn-sm btn-warning", form_class: "d-inline", data: { confirm: "Are you sure you want to pause this tenant?" } %>
+                  <%= button_to "⏸️ Pause", pause_admin_tenant_path(tenant), method: :patch, class: "btn btn-sm btn-warning", form_class: "d-inline", data: { confirm: "Are you sure you want to pause this tenant?", turbo_method: :patch } %>
                 <% else %>
-                  <%= button_to "▶️ Activate", activate_admin_tenant_path(tenant), method: :patch, class: "btn btn-sm btn-success", form_class: "d-inline", data: { confirm: "Are you sure you want to activate this tenant?" } %>
+                  <%= button_to "▶️ Activate", activate_admin_tenant_path(tenant), method: :patch, class: "btn btn-sm btn-success", form_class: "d-inline", data: { confirm: "Are you sure you want to activate this tenant?", turbo_method: :patch } %>
                 <% end %>
               </div>
             </td>
@@ -66,8 +65,11 @@
               <div class="action-buttons">
                 <%= link_to "View", admin_tenant_path(tenant), class: "btn btn-sm btn-outline" %>
                 <%= link_to "Edit", edit_admin_tenant_path(tenant), class: "btn btn-sm btn-secondary" %>
-                <%= link_to "Delete", admin_tenant_path(tenant), method: :delete, 
-                    confirm: "Are you sure? This will permanently delete all tenant data!", 
+                <%= button_to "Delete", admin_tenant_path(tenant), method: :delete, 
+                    data: { 
+                      confirm: "Are you sure? This will permanently delete all tenant data!",
+                      turbo_method: :delete
+                    }, 
                     class: "btn btn-sm btn-danger" %>
               </div>
             </td>
@@ -75,7 +77,6 @@
         <% end %>
       </tbody>
     </table>
-
     <% if @tenants.empty? %>
       <div class="empty-state">
         <h3>No tenants found</h3>
@@ -85,7 +86,6 @@
     <% end %>
   </div>
 </div>
-
 <style>
   .admin-tenants {
     padding: 2rem;

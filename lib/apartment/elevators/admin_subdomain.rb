@@ -19,10 +19,10 @@ module Apartment
           return nil
         end
         
-        # Handle localhost without subdomain - use 'test' as default for development
+        # Handle localhost without subdomain - use 'acme' as default for development
         if subdomain.blank? && (host.include?('localhost') || host.include?('127.0.0.1'))
-          subdomain = 'test'
-          Rails.logger.debug "Apartment Elevator - No subdomain on localhost, defaulting to 'test'"
+          subdomain = 'acme'
+          Rails.logger.debug "Apartment Elevator - No subdomain on localhost, defaulting to 'acme'"
         end
         
         # For other subdomains, find the corresponding tenant
@@ -50,9 +50,9 @@ module Apartment
           end
         end
         
-        # Default to 'test' tenant for development
-        Rails.logger.debug "Apartment Elevator - Falling back to 'test' tenant"
-        return 'test'
+        # Default to 'acme' tenant for development
+        Rails.logger.debug "Apartment Elevator - Falling back to 'acme' tenant"
+        return 'acme'
       end
 
       private

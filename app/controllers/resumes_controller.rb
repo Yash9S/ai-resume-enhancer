@@ -4,7 +4,7 @@ class ResumesController < ApplicationController
 
   # get all the resumes
   def index
-    @resumes = current_user.resumes.includes(:resume_processings)
+    @resumes = current_user.resumes_in_current_tenant.includes(:resume_processings)
                           .page(params[:page])
                           .per(10)
                           .order(created_at: :desc)
@@ -12,18 +12,18 @@ class ResumesController < ApplicationController
 
   # get a single resume with id
   def show
-    @job_descriptions = current_user.job_descriptions.recent
+    @job_descriptions = current_user.job_descriptions_in_current_tenant.recent
     @processings = @resume.resume_processings.recent
   end
 
   # get a new resume form
   def new
-    @resume = current_user.resumes.build
+    @resume = Resume.new(user_id: current_user.id)
   end
 
   # create a new resume
   def create
-    @resume = current_user.resumes.build(resume_params)
+    @resume = Resume.new(resume_params.merge(user_id: current_user.id))
     
     if @resume.save
       redirect_to @resume, notice: 'Resume was successfully uploaded.'
@@ -147,7 +147,7 @@ class ResumesController < ApplicationController
     
     # Validate job description if provided
     if job_description_id.present?
-      job_description = current_user.job_descriptions.find_by(id: job_description_id)
+      job_description = current_user.job_descriptions_in_current_tenant.find_by(id: job_description_id)
       unless job_description
         return render json: { error: "Job description not found" }, status: :not_found
       end
@@ -186,7 +186,7 @@ class ResumesController < ApplicationController
   private
 
   def set_resume
-    @resume = current_user.resumes.find(params[:id])
+    @resume = current_user.resumes_in_current_tenant.find(params[:id])
   end
 
   def resume_params

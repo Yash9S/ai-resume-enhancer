@@ -3,23 +3,23 @@ class JobDescriptionsController < ApplicationController
   before_action :set_job_description, only: [:show, :edit, :update, :destroy]
 
   def index
-    @job_descriptions = current_user.job_descriptions.order(created_at: :desc)
+    @job_descriptions = current_user.job_descriptions_in_current_tenant.order(created_at: :desc)
   rescue => e
     Rails.logger.error "JobDescriptions#index error: #{e.message}"
     @job_descriptions = []
   end
 
   def show
-    @resumes = current_user.resumes.recent
+    @resumes = current_user.resumes_in_current_tenant.recent
     @related_processings = @job_description.resume_processings.recent.includes(:resume)
   end
 
   def new
-    @job_description = current_user.job_descriptions.build
+    @job_description = JobDescription.new(user_id: current_user.id)
   end
 
   def create
-    @job_description = current_user.job_descriptions.build(job_description_params)
+    @job_description = JobDescription.new(job_description_params.merge(user_id: current_user.id))
 
     if @job_description.save
       # Extract keywords and requirements after saving
@@ -50,7 +50,7 @@ class JobDescriptionsController < ApplicationController
   private
 
   def set_job_description
-    @job_description = current_user.job_descriptions.find(params[:id])
+    @job_description = current_user.job_descriptions_in_current_tenant.find(params[:id])
   end
 
   def job_description_params

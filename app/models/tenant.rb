@@ -50,14 +50,14 @@ class Tenant < ApplicationRecord
 
   # Class method to sync database schemas with tenant records (MySQL version)
   def self.sync_schemas
-    # Get all existing tenant databases from MySQL
+    # Get all existing tenant databases from MySQL (simple names, no prefix)
     result = ActiveRecord::Base.connection.execute(
-      "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME LIKE 'ai_resume_parser_%' AND SCHEMA_NAME != 'ai_resume_parser_development' AND SCHEMA_NAME != 'ai_resume_parser_test' AND SCHEMA_NAME != 'ai_resume_parser_production'"
+      "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('ai_resume_parser_development', 'ai_resume_parser_test', 'ai_resume_parser_production', 'information_schema', 'mysql', 'performance_schema', 'sys')"
     )
     existing_databases = result.map { |row| row['SCHEMA_NAME'] }
     
-    # Get all tenant database names that should exist
-    active_tenant_databases = Tenant.active.pluck(:schema_name).map { |name| "ai_resume_parser_#{name}" }
+    # Get all tenant database names that should exist (simple names)
+    active_tenant_databases = Tenant.active.pluck(:schema_name)
     
     Rails.logger.info "Existing tenant databases: #{existing_databases}"
     Rails.logger.info "Active tenant databases: #{active_tenant_databases}"
@@ -98,7 +98,8 @@ class Tenant < ApplicationRecord
   def create_schema_and_copy_structure
     return true if apartment_tenant_exists?
     
-    tenant_db_name = "ai_resume_parser_#{schema_name}"
+    # Use simple database name (no prefix) as configured in apartment.rb
+    tenant_db_name = schema_name
     Rails.logger.info "Creating database and copying structure for: #{tenant_db_name}"
     
     # Create the tenant database
@@ -200,7 +201,8 @@ class Tenant < ApplicationRecord
 
   def apartment_tenant_exists?
     # Use MySQL query to check if tenant database exists
-    tenant_db_name = "ai_resume_parser_#{schema_name}"
+    # Use simple database name (no prefix) as configured in apartment.rb
+    tenant_db_name = schema_name
     result = ActiveRecord::Base.connection.execute(
       ActiveRecord::Base.sanitize_sql_array([
         "SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?", 
@@ -216,7 +218,8 @@ class Tenant < ApplicationRecord
   def drop_apartment_tenant
     if schema_name.present?
       # Drop the tenant database in MySQL
-      tenant_db_name = "ai_resume_parser_#{schema_name}"
+      # Use simple database name (no prefix) as configured in apartment.rb
+      tenant_db_name = schema_name
       Apartment::Tenant.drop(schema_name)
       Rails.logger.info "Dropped tenant database: #{tenant_db_name}"
     end

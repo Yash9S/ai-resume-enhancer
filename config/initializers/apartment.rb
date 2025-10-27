@@ -21,14 +21,18 @@ Apartment.configure do |config|
   #
   config.excluded_models = %w{ Tenant User }
 
+  # Set default tenant to acme for MySQL (prevents fallback to 'test')
+  config.default_schema = 'acme'
+
   # Dynamic tenant names from Tenant model
   config.tenant_names = lambda { 
     begin
       # Return active tenant schema names for MySQL databases
       Tenant.where(status: 'active').pluck(:schema_name) 
     rescue ActiveRecord::StatementInvalid, NameError
-      # Return default tenant during initialization or if Tenant table doesn't exist
-      ['test']
+      # Return empty array during initialization or if Tenant table doesn't exist
+      # Don't return ['test'] as it causes apartment to try to switch to non-existent 'test' database
+      []
     end
   }
 
