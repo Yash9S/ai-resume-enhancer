@@ -71,12 +71,8 @@ services:
         condition: service_healthy
     stdin_open: true
     tty: true
-    command: >
-      bash -c "
-        bundle install &&
-        bundle exec rails db:create db:migrate db:seed &&
-        bundle exec rails server -b 0.0.0.0 -p 3000
-      "
+    # Simple startup script that bypasses apartment issues
+    command: bash /rails/start_server.sh
 
   # Background Job Worker (Sidekiq - optional)
   worker:

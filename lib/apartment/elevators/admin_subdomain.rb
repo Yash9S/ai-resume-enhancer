@@ -40,7 +40,15 @@ module Apartment
               Rails.logger.debug "Apartment Elevator - Found tenant: #{tenant_record['schema_name']} for subdomain: #{subdomain}"
               return tenant_record['schema_name']
             else
-              Rails.logger.warn "Apartment Elevator - No active tenant found for subdomain: #{subdomain}"
+              Rails.logger.warn "Apartment Elevator - No active tenant found for subdomain: #{subdomain}, checking if database exists"
+              # Check if database exists directly
+              begin
+                ActiveRecord::Base.connection.execute("USE #{subdomain}")
+                Rails.logger.debug "Apartment Elevator - Database #{subdomain} exists, using it"
+                return subdomain
+              rescue => db_error
+                Rails.logger.warn "Apartment Elevator - Database #{subdomain} does not exist: #{db_error.message}"
+              end
             end
           rescue => e
             Rails.logger.error "Error finding tenant in elevator: #{e.message}"

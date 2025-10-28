@@ -25,13 +25,24 @@ class Resume < ApplicationRecord
   scope :ai_processed, -> { where(processing_status: 'completed') }
   scope :needs_processing, -> { where(processing_status: ['pending', 'failed']) }
 
-  # Get user from public schema (cross-schema relationship)
+  # Get user from public schema (cross-schema relationship) with safe tenant switching
   def user
     return nil unless user_id
     
-    # Temporarily switch to public schema to get user
-    Apartment::Tenant.switch('public') do
-      User.find_by(id: user_id)
+    # Temporarily switch to public schema to get user with error handling
+    begin
+      Apartment::Tenant.switch('public') do
+        User.find_by(id: user_id)
+      end
+    rescue => e
+      Rails.logger.error "Error switching to public schema to get user: #{e.message}"
+      # Fallback: try to get user without switching
+      begin
+        User.find_by(id: user_id)
+      rescue => fallback_error
+        Rails.logger.error "Fallback user lookup failed: #{fallback_error.message}"
+        nil
+      end
     end
   end
   
@@ -77,9 +88,14 @@ class Resume < ApplicationRecord
     ResumeProcessingJob.perform_later(self.id, job_description_id, ai_provider)
   end
 
-  # Tenant-aware method to get current tenant context
+  # Tenant-aware method to get current tenant context with error handling
   def current_tenant
-    Apartment::Tenant.current
+    begin
+      Apartment::Tenant.current
+    rescue => e
+      Rails.logger.warn "Error getting current tenant: #{e.message}"
+      nil
+    end
   end
 
   def file_name

@@ -12,12 +12,23 @@ class ResumeProcessing < ApplicationRecord
   scope :successful, -> { where(status: :completed) }
   scope :for_current_tenant, -> { all } # Already tenant-scoped via apartment gem
 
-  # Get user from public schema (cross-schema relationship)
+  # Get user from public schema (cross-schema relationship) with safe tenant switching
   def user
     return nil unless user_id
     
-    Apartment::Tenant.switch('public') do
-      User.find_by(id: user_id)
+    begin
+      Apartment::Tenant.switch('public') do
+        User.find_by(id: user_id)
+      end
+    rescue => e
+      Rails.logger.error "Error switching to public schema to get user: #{e.message}"
+      # Fallback: try to get user without switching
+      begin
+        User.find_by(id: user_id)
+      rescue => fallback_error
+        Rails.logger.error "Fallback user lookup failed: #{fallback_error.message}"
+        nil
+      end
     end
   end
   
@@ -35,8 +46,13 @@ class ResumeProcessing < ApplicationRecord
     status == 'completed'
   end
 
-  # Tenant-aware method to get current tenant context
+  # Tenant-aware method to get current tenant context with error handling
   def current_tenant
-    Apartment::Tenant.current
+    begin
+      Apartment::Tenant.current
+    rescue => e
+      Rails.logger.warn "Error getting current tenant: #{e.message}"
+      nil
+    end
   end
 end

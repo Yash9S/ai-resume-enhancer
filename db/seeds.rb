@@ -23,15 +23,16 @@ if Rails.env.development?
   
   # Create sample tenants for multi-tenancy
   sample_tenants = [
-    { name: 'Acme Corporation', subdomain: 'acme', status: 'active' },
-    { name: 'TechStart Inc', subdomain: 'techstart', status: 'active' },
-    { name: 'Global Solutions', subdomain: 'globalsol', status: 'active' },
-    { name: 'Innovation Labs', subdomain: 'innovlabs', status: 'pending' }
+    { name: 'Acme Corporation', subdomain: 'acme', schema_name: 'acme', status: 'active' },
+    { name: 'TechStart Inc', subdomain: 'techstart', schema_name: 'techstart', status: 'active' },
+    { name: 'Global Solutions', subdomain: 'globalsol', schema_name: 'globalsol', status: 'active' },
+    { name: 'Innovation Labs', subdomain: 'innovlabs', schema_name: 'innovlabs', status: 'pending' }
   ]
   
   sample_tenants.each do |tenant_data|
     tenant = Tenant.find_or_create_by(subdomain: tenant_data[:subdomain]) do |t|
       t.name = tenant_data[:name]
+      t.schema_name = tenant_data[:schema_name]
       t.status = tenant_data[:status]
     end
     puts "✅ Created tenant: #{tenant.name} (#{tenant.subdomain}.airesumeparser.com)" if tenant.persisted?
@@ -39,7 +40,7 @@ if Rails.env.development?
   
   # Create sample job description
   if sample_user.persisted?
-    job_desc = sample_user.job_descriptions.find_or_create_by(title: 'Software Engineer - Full Stack') do |jd|
+    job_desc = sample_user.job_descriptions_in_current_tenant.find_or_create_by(title: 'Software Engineer - Full Stack') do |jd|
       jd.company_name = 'Tech Corp'
       jd.location = 'San Francisco, CA'
       jd.content = <<~JD

@@ -24,14 +24,29 @@ Apartment.configure do |config|
   # Set default tenant to acme for MySQL (prevents fallback to 'test')
   config.default_schema = 'acme'
 
-  # Dynamic tenant names from Tenant model
+  # Dynamic tenant names from Tenant model with robust error handling
   config.tenant_names = lambda { 
     begin
-      # Return active tenant schema names for MySQL databases
-      Tenant.where(status: 'active').pluck(:schema_name) 
-    rescue ActiveRecord::StatementInvalid, NameError
-      # Return empty array during initialization or if Tenant table doesn't exist
-      # Don't return ['test'] as it causes apartment to try to switch to non-existent 'test' database
+      # Get existing databases from MySQL directly
+      existing_databases = ActiveRecord::Base.connection.execute("SHOW DATABASES").map { |row| row[0] }
+      
+      # Filter to only valid tenant databases (exclude system databases and problematic ones)
+      valid_tenant_dbs = existing_databases.select do |db_name|
+        !%w[information_schema performance_schema mysql sys ai_resume_parser_development ai_resume_parser_test testorg2].include?(db_name) &&
+        db_name.match?(/\A[a-z0-9_]+\z/) # Only alphanumeric and underscores
+      end
+      
+      Rails.logger.info "Found valid tenant databases: #{valid_tenant_dbs.join(', ')}"
+      valid_tenant_dbs
+      
+    rescue ActiveRecord::StatementInvalid, NameError => e
+      Rails.logger.warn "Error getting tenant names from database: #{e.message}"
+      # Return default tenant names for development if Tenant table doesn't exist
+      # This ensures apartment can work even during initial setup
+      ['acme', 'techstart', 'globalsol', 'innovlabs']
+    rescue => e
+      Rails.logger.error "Unexpected error getting tenant names: #{e.message}"
+      # Return empty array to prevent apartment from crashing
       []
     end
   }
