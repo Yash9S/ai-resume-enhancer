@@ -1,21 +1,22 @@
 services:
-  # PostgreSQL Database
+  # MySQL Database
   database:
-    image: postgres:16
+    image: mysql:8.0
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ai_resume_parser_development
-      POSTGRES_USER: ai_resume_parser
-      POSTGRES_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ai_resume_parser_development
+      MYSQL_USER: ai_resume_parser
+      MYSQL_PASSWORD: password
       TZ: Asia/Kolkata
-      PGTZ: Asia/Kolkata
     ports:
-      - "5432:5432"
+      - "3307:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ai_resume_parser"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "ai_resume_parser", "-ppassword"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,12 +43,17 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       DATABASE_HOST: database
-      DATABASE_PORT: 5432
+      DATABASE_PORT: 3306
+      DATABASE_USER: ai_resume_parser
       DATABASE_PASSWORD: password
       REDIS_URL: redis://redis:6379/0
       RAILS_ENV: development
+      # Ruby AI Service Configuration
+      RUBY_AI_SERVICE_URL: http://192.168.65.254:8001
       # AI Service Configuration - Ollama for local development
       OLLAMA_BASE_URL: http://host.docker.internal:11434   # FREE local AI (recommended for dev)
       # Optional: Add other services if needed
@@ -65,12 +71,8 @@ services:
         condition: service_healthy
     stdin_open: true
     tty: true
-    command: >
-      bash -c "
-        bundle install &&
-        bundle exec rails db:create db:migrate db:seed &&
-        bundle exec rails server -b 0.0.0.0 -p 3000
-      "
+    # Simple startup script that bypasses apartment issues
+    command: bash /rails/start_server.sh
 
   # Background Job Worker (Sidekiq - optional)
   worker:
@@ -80,10 +82,13 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_HOST: database
-      DATABASE_PORT: 5432
+      DATABASE_PORT: 3306
+      DATABASE_USER: ai_resume_parser
       DATABASE_PASSWORD: password
       REDIS_URL: redis://redis:6379/0
       RAILS_ENV: development
+      # Ruby AI Service Configuration
+      RUBY_AI_SERVICE_URL: http://192.168.65.254:8001
       # AI Service Configuration - Ollama for local development
       OLLAMA_BASE_URL: http://host.docker.internal:11434   # FREE local AI (recommended for dev)
       # Optional: Add other services if needed
@@ -100,7 +105,7 @@ services:
     command: bundle exec sidekiq
 
 volumes:
-  postgres_data:
+  mysql_data:
   redis_data:
   bundle_data:
   rails_cache:

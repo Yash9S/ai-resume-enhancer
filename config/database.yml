@@ -1,32 +1,27 @@
-# PostgreSQL. Versions 9.3 and up are supported.
+# MySQL. Versions 5.7 and up are supported.
 #
-# Install the pg driver:
-#   gem install pg
-# On macOS with Homebrew:
-#   gem install pg -- --with-pg-config=/usr/local/bin/pg_config
-# On macOS with MacPorts:
-#   gem install pg -- --with-pg-config=/opt/local/lib/postgresql84/bin/pg_config
-# On Windows:
-#   gem install pg
-#       Choose the win32 build.
-#       Install PostgreSQL and put its /bin directory on your path.
+# Install the mysql2 driver:
+#   gem install mysql2
 #
 # Configure Using Gemfile
-# gem "pg"
+# gem "mysql2"
 #
 default: &default
-  adapter: postgresql
-  encoding: unicode
+  adapter: mysql2
+  encoding: utf8mb4
+  charset: utf8mb4
+  collation: utf8mb4_unicode_ci
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  reconnect: false
 
 development:
   <<: *default
   database: ai_resume_parser_development
   host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
-  port: <%= ENV.fetch("DATABASE_PORT", "5432") %>
-  username: ai_resume_parser
+  port: <%= ENV.fetch("DATABASE_PORT", "3306") %>
+  username: <%= ENV.fetch("DATABASE_USER", "ai_resume_parser") %>
   password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
 
   # The specified database role being used to connect to postgres.
@@ -62,10 +57,10 @@ development:
 test:
   <<: *default
   database: ai_resume_parser_test
-  username: ai_resume_parser
+  username: <%= ENV['DATABASE_USER'] || 'ai_resume_parser' %>
   password: <%= ENV['DATABASE_PASSWORD'] || 'password' %>
   host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
-  port: <%= ENV['DATABASE_PORT'] || 5432 %>
+  port: <%= ENV['DATABASE_PORT'] || 3306 %>
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -90,7 +85,7 @@ test:
 production:
   <<: *default
   database: ai_resume_parser_production
-  username: ai_resume_parser
+  username: <%= ENV['DATABASE_USER'] || 'ai_resume_parser' %>
   password: <%= ENV["AI_RESUME_PARSER_DATABASE_PASSWORD"] %>
   host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
-  port: <%= ENV['DATABASE_PORT'] || 5432 %>
+  port: <%= ENV['DATABASE_PORT'] || 3306 %>

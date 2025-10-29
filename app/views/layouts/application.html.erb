@@ -7,41 +7,101 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-
     <%= yield :head %>
-
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
-
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%= stylesheet_link_tag "react_components", "data-turbo-track": "reload" %>
-    <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
-    <%= javascript_include_tag "components", "data-turbo-track": "reload" %>
-    
-    <script>
-      // Toastr configuration
-      toastr.options = {
-        "closeButton": true,
-        "debug": false,
-        "newestOnTop": true,
-        "progressBar": true,
-        "positionClass": "toast-top-right",
-        "preventDuplicates": false,
-        "onclick": null,
-        "showDuration": "300",
-        "hideDuration": "1000",
-        "timeOut": "5000",
-        "extendedTimeOut": "1000",
-        "showEasing": "swing",
-        "hideEasing": "linear",
-        "showMethod": "fadeIn",
-        "hideMethod": "fadeOut"
+    <!-- SystemJS for microfrontend module loading -->
+    <script src="https://cdn.jsdelivr.net/npm/systemjs@6.14.1/dist/system.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/systemjs@6.14.1/dist/extras/amd.min.js"></script>
+    <!-- jQuery for legacy functionality -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- React will be loaded via SystemJS importmap -->
+    <!-- Toastr for notifications -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <!-- SystemJS ImportMap for microfrontend modules -->
+    <script type="systemjs-importmap">
+      {
+        "imports": {
+          "react": "https://unpkg.com/react@18/umd/react.development.js",
+          "react-dom": "https://unpkg.com/react-dom@18/umd/react-dom.development.js",
+          "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.9.3/lib/system/single-spa.min.js",
+          "jquery": "https://code.jquery.com/jquery-3.6.0.min.js",
+          "job-descriptions-microfrontend": "http://localhost:4005/job-descriptions-microfrontend.js"
+        }
       }
     </script>
-  </head>
+    <%# Temporarily disabled - causing 500 error %>
+    <%# <%= stylesheet_link_tag "react_components", "data-turbo-track": "reload" %>
+    <%# Temporarily disable microfrontends CSS causing 500 error %>
+    <%# <%= stylesheet_link_tag "microfrontends", "data-turbo-track": "reload" %>
+    <%# Temporarily disable legacy asset pipeline JavaScript to avoid JSX conflicts %>
+    <%# <%= javascript_include_tag "application", "data-turbo-track": "reload" %>
+    <%# <%= javascript_include_tag "components", "data-turbo-track": "reload" %> <!-- Commented out to avoid conflicts -->
+    <script>
+      // Toastr configuration
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof toastr !== 'undefined') {
+          toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+          };
 
+          // Global notification functions
+          window.showNotification = function(type, message, title = null, options = {}) {
+            const toastrOptions = Object.assign({
+              closeButton: true,
+              progressBar: true,
+              positionClass: 'toast-top-right',
+              timeOut: 5000
+            }, options);
+
+            toastr.options = toastrOptions;
+
+            switch(type) {
+              case 'success':
+                toastr.success(message, title);
+                break;
+              case 'error':
+                toastr.error(message, title);
+                break;
+              case 'info':
+                toastr.info(message, title);
+                break;
+              case 'warning':
+                toastr.warning(message, title);
+                break;
+              default:
+                toastr.info(message, title);
+            }
+          };
+
+          window.toast = {
+            success: (message, title, options) => showNotification('success', message, title, options),
+            error: (message, title, options) => showNotification('error', message, title, options),
+            info: (message, title, options) => showNotification('info', message, title, options),
+            warning: (message, title, options) => showNotification('warning', message, title, options)
+          };
+        }
+      });
+    </script>
+  </head>
   <body>
     <!-- Navigation -->
     <nav class="navbar">
@@ -50,7 +110,6 @@
           <div class="navbar-brand">
             <%= link_to "AI Resume Parser", root_path, style: "color: white; text-decoration: none;" %>
           </div>
-          
           <% if user_signed_in? %>
             <div class="navbar-menu">
               <% if admin_subdomain? %>
@@ -71,7 +130,6 @@
             </div>
           <% end %>
         </div>
-        
         <div class="navbar-right">
           <% if user_signed_in? %>
             <span class="navbar-profile">👋 <%= current_user.email %></span>
@@ -83,7 +141,6 @@
         </div>
       </div>
     </nav>
-
     <!-- Toastr Flash Messages -->
     <% if flash.any? %>
       <script>
@@ -93,12 +150,10 @@
         <% end %>
       </script>
     <% end %>
-
     <!-- Main Content -->
     <main class="container mt-4">
       <%= yield %>
     </main>
-
     <!-- Footer -->
     <footer class="bg-light mt-5 py-3">
       <div class="container text-center">

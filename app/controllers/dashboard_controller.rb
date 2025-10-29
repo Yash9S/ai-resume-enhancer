@@ -7,15 +7,15 @@ class DashboardController < ApplicationController
       # Check if required tables exist before querying
       unless table_exists?('resumes') && table_exists?('job_descriptions')
         @stats = { total_resumes: 0, processed_resumes: 0, total_job_descriptions: 0, successful_processings: 0 }
-        @resumes = current_user.admin? ? Resume.none : current_user.resumes.none
-        @job_descriptions = current_user.admin? ? JobDescription.none : current_user.job_descriptions.none
+        @resumes = current_user.admin? ? Resume.none : current_user.resumes_in_current_tenant.none
+        @job_descriptions = current_user.admin? ? JobDescription.none : current_user.job_descriptions_in_current_tenant.none
         flash[:alert] = "Tenant database schema is not properly initialized. Please contact an administrator."
         return
       end
 
       # Get data for both formats
-      @resumes = current_user.admin? ? Resume.includes(:user) : current_user.resumes.includes(:user)
-      @job_descriptions = current_user.admin? ? JobDescription.includes(:user) : current_user.job_descriptions.includes(:user)
+      @resumes = current_user.admin? ? Resume.includes(:user) : current_user.resumes_in_current_tenant.includes(:user)
+      @job_descriptions = current_user.admin? ? JobDescription.includes(:user) : current_user.job_descriptions_in_current_tenant.includes(:user)
       
       # Provide stats for both ERB fallback and React components
       @stats = {
@@ -28,8 +28,8 @@ class DashboardController < ApplicationController
       # Handle database errors gracefully
       Rails.logger.error "Database error in dashboard index: #{e.message}"
       @stats = { total_resumes: 0, processed_resumes: 0, total_job_descriptions: 0, successful_processings: 0 }
-      @resumes = current_user.admin? ? Resume.none : current_user.resumes.none
-      @job_descriptions = current_user.admin? ? JobDescription.none : current_user.job_descriptions.none
+      @resumes = current_user.admin? ? Resume.none : current_user.resumes_in_current_tenant.none
+      @job_descriptions = current_user.admin? ? JobDescription.none : current_user.job_descriptions_in_current_tenant.none
       flash[:alert] = "Unable to load dashboard data. Please try again or contact support if the problem persists."
     end
 
@@ -84,10 +84,10 @@ class DashboardController < ApplicationController
       end
 
       @stats = {
-        total_resumes: current_user.resumes.count,
-        processed_resumes: current_user.resumes.where(processing_status: 'completed').count,
-        total_job_descriptions: current_user.job_descriptions.count,
-        successful_processings: current_user.resumes.where(processing_status: 'completed').count
+        total_resumes: current_user.resumes_in_current_tenant.count,
+        processed_resumes: current_user.resumes_in_current_tenant.where(processing_status: 'completed').count,
+        total_job_descriptions: current_user.job_descriptions_in_current_tenant.count,
+        successful_processings: current_user.resumes_in_current_tenant.where(processing_status: 'completed').count
       }
     rescue ActiveRecord::StatementInvalid => e
       # Handle database errors gracefully

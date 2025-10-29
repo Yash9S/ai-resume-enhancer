@@ -48,25 +48,25 @@ class Tenant < ApplicationRecord
     status == 'active'
   end
 
-  # Class method to sync database schemas with tenant records
+  # Class method to sync database schemas with tenant records (MySQL version)
   def self.sync_schemas
-    # Get all existing schemas from database
+    # Get all existing tenant databases from MySQL (simple names, no prefix)
     result = ActiveRecord::Base.connection.execute(
-      "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast', 'pg_temp_1', 'pg_toast_temp_1', 'public')"
+      "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('ai_resume_parser_development', 'ai_resume_parser_test', 'ai_resume_parser_production', 'information_schema', 'mysql', 'performance_schema', 'sys')"
     )
-    existing_schemas = result.map { |row| row['schema_name'] }
+    existing_databases = result.map { |row| row['SCHEMA_NAME'] }
     
-    # Get all tenant schema names that should exist
-    active_tenant_schemas = Tenant.active.pluck(:schema_name)
+    # Get all tenant database names that should exist (simple names)
+    active_tenant_databases = Tenant.active.pluck(:schema_name)
     
-    Rails.logger.info "Existing schemas: #{existing_schemas}"
-    Rails.logger.info "Active tenant schemas: #{active_tenant_schemas}"
+    Rails.logger.info "Existing tenant databases: #{existing_databases}"
+    Rails.logger.info "Active tenant databases: #{active_tenant_databases}"
     
-    # Find orphaned schemas (exist in DB but no active tenant)
-    orphaned_schemas = existing_schemas - active_tenant_schemas
-    Rails.logger.info "Orphaned schemas found: #{orphaned_schemas}" if orphaned_schemas.any?
+    # Find orphaned databases (exist in MySQL but no active tenant)
+    orphaned_databases = existing_databases - active_tenant_databases
+    Rails.logger.info "Orphaned databases found: #{orphaned_databases}" if orphaned_databases.any?
     
-    orphaned_schemas
+    orphaned_databases
   end
 
   # Check if apartment schema exists (public method for rake tasks)
@@ -94,76 +94,55 @@ class Tenant < ApplicationRecord
     false
   end
 
-  # Create schema and copy table structure (proven working approach)
+  # Create database and copy table structure for MySQL
   def create_schema_and_copy_structure
     return true if apartment_tenant_exists?
     
-    Rails.logger.info "Creating schema and copying structure for: #{schema_name}"
+    # Use simple database name (no prefix) as configured in apartment.rb
+    tenant_db_name = schema_name
+    Rails.logger.info "Creating database and copying structure for: #{tenant_db_name}"
     
-    # Create the schema
+    # Create the tenant database
     ActiveRecord::Base.connection.execute(
-      "CREATE SCHEMA IF NOT EXISTS #{ActiveRecord::Base.connection.quote_column_name(schema_name)}"
+      "CREATE DATABASE IF NOT EXISTS `#{tenant_db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
     )
-    Rails.logger.info "Schema created: #{schema_name}"
+    Rails.logger.info "Database created: #{tenant_db_name}"
     
-    # Find a working schema to copy from
-    working_schema = find_working_schema_for_copy
-    Rails.logger.info "Copying structure from: #{working_schema}"
+    # Switch to new tenant database using Apartment
+    Apartment::Tenant.create(schema_name)
     
-    # Switch to new schema and copy tables
+    # Run migrations on the new tenant database
     Apartment::Tenant.switch(schema_name) do
-      # Copy all necessary tables
-      tables_to_copy = %w[users resumes job_descriptions resume_processings active_storage_blobs active_storage_attachments active_storage_variant_records]
-      
-      tables_to_copy.each do |table|
-        begin
-          ActiveRecord::Base.connection.execute(
-            "CREATE TABLE #{table} (LIKE #{working_schema}.#{table} INCLUDING ALL)"
-          )
-          Rails.logger.info "Copied table: #{table}"
-        rescue PG::DuplicateTable
-          Rails.logger.info "Table #{table} already exists"
-        rescue => e
-          Rails.logger.warn "Failed to copy table #{table}: #{e.message}"
-        end
-      end
-      
-      # Copy schema_migrations table and records
-      begin
-        ActiveRecord::Base.connection.execute(
-          "CREATE TABLE IF NOT EXISTS schema_migrations (LIKE #{working_schema}.schema_migrations INCLUDING ALL)"
-        )
-        ActiveRecord::Base.connection.execute(
-          "INSERT INTO schema_migrations (version) 
-           SELECT version FROM #{working_schema}.schema_migrations 
-           ON CONFLICT (version) DO NOTHING"
-        )
-        Rails.logger.info "Copied migration records from #{working_schema}"
-      rescue => e
-        Rails.logger.warn "Failed to copy migration records: #{e.message}"
-      end
+      # Run all migrations to set up the database structure
+      ActiveRecord::Tasks::DatabaseTasks.migrate
+      Rails.logger.info "Migrations completed for tenant database: #{tenant_db_name}"
     end
     
-    Rails.logger.info "Successfully created schema and tables for #{schema_name}"
+    Rails.logger.info "Successfully created database and tables for #{tenant_db_name}"
     true
     
-  rescue PG::DuplicateSchema
-    Rails.logger.info "Schema #{schema_name} already exists"
-    true
+  rescue ActiveRecord::StatementInvalid => e
+    if e.message.include?("database exists")
+      Rails.logger.info "Database #{tenant_db_name} already exists"
+      true
+    else
+      Rails.logger.error "Failed to create database #{tenant_db_name}: #{e.message}"
+      false
+    end
   rescue => e
-    Rails.logger.error "Failed to create schema #{schema_name}: #{e.message}"
+    Rails.logger.error "Failed to create tenant database #{tenant_db_name}: #{e.message}"
     false
   end
 
-  # Find a working schema to copy structure from
-  def find_working_schema_for_copy
+  # Find a working tenant database to use as reference (MySQL version)
+  def find_working_tenant_for_copy
     # Try to find an active tenant with all required tables
     Tenant.where.not(id: id).active.find_each do |tenant|
       next unless tenant.schema_exists?
       
       begin
         Apartment::Tenant.switch(tenant.schema_name) do
-          required_tables = %w[users resumes job_descriptions resume_processings]
+          required_tables = %w[resumes job_descriptions resume_processings]
           if required_tables.all? { |table| ActiveRecord::Base.connection.table_exists?(table) }
             return tenant.schema_name
           end
@@ -173,8 +152,8 @@ class Tenant < ApplicationRecord
       end
     end
     
-    # If no tenant schema works, use public schema as fallback
-    'public'
+    # If no tenant database works, use the main database for reference
+    nil # Let Apartment handle database creation with migrations
   end
 
   def create_apartment_tenant_if_needed
@@ -221,22 +200,30 @@ class Tenant < ApplicationRecord
   end
 
   def apartment_tenant_exists?
-    # Use direct PostgreSQL query to check if schema exists
+    # Use MySQL query to check if tenant database exists
+    # Use simple database name (no prefix) as configured in apartment.rb
+    tenant_db_name = schema_name
     result = ActiveRecord::Base.connection.execute(
       ActiveRecord::Base.sanitize_sql_array([
-        "SELECT 1 FROM information_schema.schemata WHERE schema_name = ?", 
-        schema_name
+        "SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?", 
+        tenant_db_name
       ])
     )
     result.any?
   rescue => e
-    Rails.logger.error "Failed to check tenant existence #{schema_name}: #{e.message}"
+    Rails.logger.error "Failed to check tenant database existence #{tenant_db_name}: #{e.message}"
     false
   end
 
   def drop_apartment_tenant
-    Apartment::Tenant.drop(schema_name) if schema_name.present?
+    if schema_name.present?
+      # Drop the tenant database in MySQL
+      # Use simple database name (no prefix) as configured in apartment.rb
+      tenant_db_name = schema_name
+      Apartment::Tenant.drop(schema_name)
+      Rails.logger.info "Dropped tenant database: #{tenant_db_name}"
+    end
   rescue => e
-    Rails.logger.error "Failed to drop apartment tenant #{schema_name}: #{e.message}"
+    Rails.logger.error "Failed to drop apartment tenant database #{schema_name}: #{e.message}"
   end
 end

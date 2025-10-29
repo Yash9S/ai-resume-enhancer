@@ -1,8 +1,8 @@
 class AiExtractionService
   include HTTParty
   
-  # Use the AI service directly (simple and reliable)
-  base_uri ENV.fetch('AI_SERVICE_URL', 'http://localhost:8001')
+  # Use the Ruby AI service directly (simple and reliable)
+  base_uri ENV.fetch('RUBY_AI_SERVICE_URL', 'http://192.168.65.254:8001')
   
   def initialize
     @options = {
@@ -82,6 +82,17 @@ class AiExtractionService
   def extract_structured_data(file_path, provider: 'ollama')
     start_time = Time.current
     
+    # Validate file exists and is readable
+    unless File.exist?(file_path) && File.readable?(file_path) && File.size(file_path) > 0
+      Rails.logger.error "File not accessible: #{file_path} (exists: #{File.exist?(file_path)}, readable: #{File.readable?(file_path)}, size: #{File.size(file_path) if File.exist?(file_path)})"
+      return {
+        error: "File not accessible for microservice processing",
+        provider_tried: provider
+      }
+    end
+    
+    Rails.logger.info "Processing file: #{file_path} (#{File.size(file_path)} bytes) with #{provider}"
+    
     # Try primary provider first
     result = try_extraction_with_provider(file_path, provider)
     
@@ -92,7 +103,7 @@ class AiExtractionService
     end
     
     processing_time = Time.current - start_time
-    Rails.logger.info "Total processing time: #{processing_time.round(2)}s"
+    Rails.logger.info "Total microservice processing time: #{processing_time.round(2)}s"
     
     result
   end
@@ -102,7 +113,18 @@ class AiExtractionService
   def try_extraction_with_provider(file_path, provider)
     timeout = provider == 'ollama' ? 90 : 30  # Shorter timeouts
     
+    # Final file validation before sending to microservice
+    unless File.exist?(file_path) && File.size(file_path) > 0
+      Rails.logger.error "File invalid just before microservice call: #{file_path}"
+      return {
+        error: "File became inaccessible during processing",
+        provider_tried: provider
+      }
+    end
+    
     File.open(file_path, 'rb') do |file|
+      Rails.logger.info "Sending #{File.size(file_path)} byte file to #{provider} microservice"
+      
       response = self.class.post('/extract/structured', {
         body: { 
           file: file,
@@ -113,13 +135,14 @@ class AiExtractionService
       
       if response.success?
         result = response.parsed_response
-        Rails.logger.info "Structured extraction completed with #{result['provider_used']} in #{provider} mode"
+        Rails.logger.info "✅ Microservice extraction completed with #{result['provider_used']}"
         result
       else
-        Rails.logger.error "Structured extraction failed with #{provider}: HTTP #{response.code}"
+        Rails.logger.error "❌ Microservice extraction failed with #{provider}: HTTP #{response.code}"
+        Rails.logger.error "Response body: #{response.body&.truncate(200)}"
         { 
-          error: "Extraction failed with #{provider}",
-          details: response.body,
+          error: "Extraction failed with #{provider}: HTTP #{response.code}",
+          details: response.body&.truncate(500),
           provider_tried: provider
         }
       end
@@ -131,10 +154,16 @@ class AiExtractionService
       timeout: true,
       provider_tried: provider
     }
+  rescue Errno::ENOENT => e
+    Rails.logger.error "File not found during microservice call: #{e.message}"
+    {
+      error: "File disappeared during processing",
+      provider_tried: provider
+    }
   rescue => e
-    Rails.logger.error "Extraction error with #{provider}: #{e.message}"
+    Rails.logger.error "Extraction error with #{provider}: #{e.class.name}: #{e.message}"
     { 
-      error: e.message,
+      error: "#{e.class.name}: #{e.message}",
       provider_tried: provider
     }
   end

@@ -86,4 +86,9 @@ Rails.application.configure do
   #
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+
+  # Ruby AI Service URL for microservice communication (Docker internal network)
+  config.after_initialize do
+    ENV['RUBY_AI_SERVICE_URL'] ||= 'http://ruby-ai-service:4001'
+  end
 end

@@ -4,7 +4,7 @@ class ResumesController < ApplicationController
 
   # get all the resumes
   def index
-    @resumes = current_user.resumes.includes(:resume_processings)
+    @resumes = current_user.resumes_in_current_tenant.includes(:resume_processings)
                           .page(params[:page])
                           .per(10)
                           .order(created_at: :desc)
@@ -12,18 +12,18 @@ class ResumesController < ApplicationController
 
   # get a single resume with id
   def show
-    @job_descriptions = current_user.job_descriptions.recent
+    @job_descriptions = current_user.job_descriptions_in_current_tenant.recent
     @processings = @resume.resume_processings.recent
   end
 
   # get a new resume form
   def new
-    @resume = current_user.resumes.build
+    @resume = Resume.new(user_id: current_user.id)
   end
 
   # create a new resume
   def create
-    @resume = current_user.resumes.build(resume_params)
+    @resume = Resume.new(resume_params.merge(user_id: current_user.id))
     
     if @resume.save
       redirect_to @resume, notice: 'Resume was successfully uploaded.'
@@ -53,26 +53,34 @@ class ResumesController < ApplicationController
 
   def process_resume
     job_description_id = params[:job_description_id].present? ? params[:job_description_id] : nil
+    ai_provider = params[:ai_provider] || 'ollama'
     
-    # Update status and queue optimized processing job
+    # Update status to processing
     @resume.update!(
       status: :processing,
-      processing_status: :queued,
-      processing_error: nil
+      processing_status: :processing,
+      processing_error: nil,
+      processing_started_at: Time.current
     )
     
-    ResumeProcessingJob.set(queue: :high).perform_later(@resume.id, job_description_id, 'ollama')
+    # Queue background job for processing with current tenant
+    current_tenant = Apartment::Tenant.current
+    ResumeProcessingJob.perform_later(@resume.id, job_description_id, ai_provider, current_tenant)
     
-    redirect_to @resume, notice: 'Fast AI processing started. Check back in about 1 minute.'
+    redirect_to @resume, notice: 'Resume processing started in background. You will be notified when completed.'
   end
 
   def reprocess
-    # Force reprocessing with optimized job - reset processing status and clear existing data
+    job_description_id = params[:job_description_id]
+    ai_provider = params[:ai_provider] || 'ollama'
+    
+    # Force reprocessing and clear existing data
     @resume.update!(
       status: :processing,
-      processing_status: :pending,
+      processing_status: :processing,
       processing_error: nil,
-      processing_started_at: nil,
+      processing_started_at: Time.current,
+      processing_completed_at: nil,
       extracted_content: nil,
       enhanced_content: nil,
       extracted_data: nil,
@@ -89,11 +97,11 @@ class ResumesController < ApplicationController
       extraction_confidence: nil
     )
     
-    # Use the optimized ResumeProcessingJob instead
-    job_description_id = params[:job_description_id]
-    ResumeProcessingJob.set(queue: :high).perform_later(@resume.id, job_description_id, 'ollama')
+    # Queue background job for reprocessing with current tenant
+    current_tenant = Apartment::Tenant.current
+    ResumeProcessingJob.perform_later(@resume.id, job_description_id, ai_provider, current_tenant)
     
-    redirect_to @resume, notice: 'Resume reprocessing started with fast AI processing. Check back in about 1 minute.'
+    redirect_to @resume, notice: 'Resume reprocessing started in background. You will be notified when completed.'
   end
 
   def download
@@ -139,7 +147,7 @@ class ResumesController < ApplicationController
     
     # Validate job description if provided
     if job_description_id.present?
-      job_description = current_user.job_descriptions.find_by(id: job_description_id)
+      job_description = current_user.job_descriptions_in_current_tenant.find_by(id: job_description_id)
       unless job_description
         return render json: { error: "Job description not found" }, status: :not_found
       end
@@ -178,7 +186,7 @@ class ResumesController < ApplicationController
   private
 
   def set_resume
-    @resume = current_user.resumes.find(params[:id])
+    @resume = current_user.resumes_in_current_tenant.find(params[:id])
   end
 
   def resume_params

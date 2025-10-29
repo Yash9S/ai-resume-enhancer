@@ -48,40 +48,44 @@ const Navigation = (props) => {
   };
     
   return (
-      React.createElement('nav', { className: 'navbar' },
-        React.createElement('div', { className: 'navbar-container' },
-          React.createElement('div', { className: 'navbar-left' },
-            React.createElement('div', { className: 'navbar-brand' },
-              React.createElement('a', { href: '/' }, 'AI Resume Parser')
-            ),
-            React.createElement('div', { className: 'navbar-menu' },
-              isAdminSubdomain() && currentUser && currentUser.role === 'admin' ? [
-                // Admin subdomain navigation
-                React.createElement('a', { key: 'admin-dashboard', href: '/admin/dashboard/index', className: 'navbar-item' }, 'Admin Dashboard'),
-                React.createElement('a', { key: 'tenants', href: '/admin/tenants', className: 'navbar-item' }, 'Tenants'),
-                React.createElement('a', { key: 'users', href: '/admin/users', className: 'navbar-item' }, 'Users')
-              ] : [
-                // Regular tenant navigation  
-                React.createElement('a', { key: 'dashboard', href: '/', className: 'navbar-item' }, 'Dashboard'),
-                React.createElement('a', { key: 'resumes', href: '/resumes', className: 'navbar-item' }, 'Resumes'),
-                React.createElement('a', { key: 'job-descriptions', href: '/job_descriptions', className: 'navbar-item' }, 'Job Descriptions')
-              ]
-            )
-          ),
-          React.createElement('div', { className: 'navbar-right' },
-            currentUser ? [
-              React.createElement('span', { key: 'profile', className: 'navbar-profile' }, '👋 ' + currentUser.email),
-              React.createElement('button', { 
-                key: 'signout',
-                onClick: handleSignOut, 
-                className: 'navbar-item btn-signout' 
-              }, 'Sign Out')
-            ] : [
-              React.createElement('a', { key: 'login', href: '/users/sign_in', className: 'navbar-item' }, 'Login'),
-              React.createElement('a', { key: 'signup', href: '/users/sign_up', className: 'navbar-item' }, 'Sign Up')
-            ]
-          )
-        )
-      )
-    );
+    <nav className="navbar">
+      <div className="navbar-container">
+        <div className="navbar-left">
+          <div className="navbar-brand">
+            <a href="/">AI Resume Parser</a>
+          </div>
+          <div className="navbar-menu">
+            {isAdminSubdomain() && currentUser && currentUser.role === 'admin' ? (
+              <>
+                <a href="/admin/dashboard/index" className="navbar-item">Admin Dashboard</a>
+                <a href="/admin/tenants" className="navbar-item">Tenants</a>
+                <a href="/admin/users" className="navbar-item">Users</a>
+              </>
+            ) : (
+              <>
+                <a href="/" className="navbar-item">Dashboard</a>
+                <a href="/resumes" className="navbar-item">Resumes</a>
+                <a href="/job_descriptions" className="navbar-item">Job Descriptions</a>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="navbar-right">
+          {currentUser ? (
+            <>
+              <span className="navbar-profile">👋 {currentUser.email}</span>
+              <button onClick={handleSignOut} className="navbar-item btn-signout">
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <a href="/users/sign_in" className="navbar-item">Login</a>
+              <a href="/users/sign_up" className="navbar-item">Sign Up</a>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
 };
